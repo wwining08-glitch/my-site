@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>출근부</title>
+    <style>
+      :root { --bg:#f2f3f5; --panel:#0f83a6; --card:#e9ebee; --text:#1f2937; --sub:#6b7280; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI","Apple SD Gothic Neo",sans-serif; }
+      .app { max-width: 520px; margin: 0 auto; min-height: 100vh; }
+      .content { padding: 16px 12px 92px; }
+      .hidden { display: none !important; }
+      button { cursor: pointer; }
+
+      .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-top: 1px solid #d9dde3; display: grid; grid-template-columns: repeat(4,1fr); padding: 8px 2px 10px; }
+      .tab { border: 0; background: transparent; color: #9aa3af; text-align: center; font-size: 18px; }
+      .tab.active { color: #0f83a6; font-weight: 700; }
+      .tab-label { margin-top: 4px; font-size: 12px; }
+
+      .login-page { padding-top: 86px; }
+      .brand { text-align: center; margin-bottom: 38px; }
+      .brand h1 { margin: 0; font-size: 44px; font-weight: 800; }
+      .brand p { margin: 6px 0 0; color: #7b8490; font-size: 22px; }
+      .field-label { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+      .input-wrap { position: relative; margin-bottom: 14px; }
+      .login-input { width: 100%; border: 1px solid #d4dae3; border-radius: 10px; padding: 12px; font-size: 18px; background: #f0f2f5; }
+      .show-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: #0f83a6; font-weight: 700; }
+      .login-btn { width: 100%; border: 0; border-radius: 10px; background: var(--panel); color: #fff; padding: 14px 0; font-size: 22px; font-weight: 700; margin: 6px 0 14px; }
+      .line-title { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; color: #7f8896; font-size: 16px; margin-bottom: 12px; }
+      .line-title::before, .line-title::after { content: ""; height: 1px; background: #cfd5de; }
+      .account-btn { width: 100%; border: 1px solid #d4dae3; border-radius: 10px; background: #eceff3; padding: 10px; margin-bottom: 8px; text-align: center; }
+      .account-title { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+      .account-sub { font-size: 14px; color: #334155; }
+
+      .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+      .title { font-size: 28px; font-weight: 700; }
+      .today { color: #0f83a6; font-weight: 700; font-size: 14px; }
+      .panel { background: var(--panel); color: #fff; border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+      .chip { display: inline-block; background: rgba(255,255,255,.2); border-radius: 14px; padding: 6px 11px; margin-bottom: 16px; }
+      .clock { text-align: center; font-size: 44px; font-weight: 700; margin-bottom: 14px; }
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .action { border: 0; border-radius: 12px; background: #57a8c4; color: #fff; font-size: 22px; font-weight: 700; padding: 12px 0; }
+      .action:disabled { opacity: .45; cursor: not-allowed; }
+      .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+      .small-card,.menu,.block,.request-card,.profile-card { background: var(--card); border-radius: 12px; padding: 12px; }
+      .small-label { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+      .small-value { font-size: 24px; font-weight: 700; }
+      .menu { width: 100%; border: 0; text-align: left; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      .menu-left { display: flex; align-items: center; gap: 10px; }
+      .menu-icon { width: 26px; text-align: center; font-size: 20px; }
+      .menu-title { font-size: 20px; font-weight: 700; line-height: 1.1; }
+      .menu-sub { color: var(--sub); font-size: 14px; margin-top: 2px; }
+
+      .records-head { display: flex; align-items: center; gap: 8px; font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+      .back { border: 0; background: transparent; font-size: 28px; padding: 0; }
+      .records-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+      .month-nav { display:flex; justify-content:space-between; align-items:center; margin:8px 0; }
+      .month-btn { border:0; background:transparent; font-size:24px; padding:2px 8px; }
+      .month-label { font-size:38px; font-weight:800; }
+      .sum-card { background:#e9ebee; border-radius:10px; padding:8px 10px; color:#6b7280; font-size:13px; margin-bottom:8px; }
+      .dow { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:10px 0 6px; }
+      .dow div { text-align:center; font-size:14px; font-weight:700; }
+      .sun { color:#ef4444; } .sat { color:#0284c7; }
+      .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+      .day { min-height:74px; border-radius:10px; padding:6px; }
+      .day-num { text-align:center; font-size:28px; font-weight:700; margin-bottom:2px; }
+      .day-empty { background:transparent; }
+      .day-work { background:#e5e7eb; }
+      .day-focus { background:#0f83a6; color:#fff; }
+      .day-time { font-size:10px; text-align:center; line-height:1.25; }
+      .day-num.sun { color:#ef4444; }
+      .day-num.sat { color:#0284c7; }
+      .notice { margin-top:10px; color:#8b93a1; text-align:center; font-size:12px; }
+      .sub-head { font-size: 22px; font-weight: 700; margin: 10px 0 6px; }
+      .today-card { background: var(--panel); color: #fff; border-radius: 14px; padding: 12px; }
+      .today-row { display: flex; justify-content: space-between; }
+      .today-k { font-size: 14px; opacity: .8; }
+      .today-v { font-size: 26px; font-weight: 700; }
+      .divider { height: 1px; background: rgba(255,255,255,.25); margin: 8px 0; }
+      .recent-item { margin-bottom: 8px; }
+      .recent-date { color: #6b7280; font-size: 13px; margin-bottom: 3px; }
+      .recent-line { display: flex; justify-content: space-between; font-size: 16px; }
+      .recent-dur { color: #0f83a6; font-weight: 700; }
+      .recent-actions { margin-top: 7px; display: flex; justify-content: flex-end; }
+      .edit-btn { border: 1px solid #c5ccd7; background: #fff; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 700; }
+
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(17,24,39,.35); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+      .modal-sheet { width: 100%; max-width: 520px; background: #f2f3f5; border-radius: 16px 16px 0 0; padding: 14px; }
+      .modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+      .modal-close { border: 0; background: transparent; font-size: 24px; }
+      .form-label { font-size: 13px; color: #6b7280; margin-bottom: 4px; }
+      .select-day,.req-input,.req-textarea,.type-btn { width: 100%; background: #eceff3; border: 1px solid #d2d8e1; border-radius: 10px; padding: 10px; font-size: 16px; margin-bottom: 8px; text-align: left; }
+      .type-btn.active { background: #0f83a6; color: #fff; border-color: #0f83a6; }
+      .type-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; border: 2px solid currentColor; margin-right: 7px; vertical-align: middle; }
+      .req-textarea { min-height: 78px; resize: none; }
+      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+      .btn-cancel,.btn-submit { border: 0; border-radius: 10px; padding: 10px 0; font-size: 18px; font-weight: 700; }
+      .btn-cancel { background: #e5e7eb; }
+      .btn-submit { background: #0f83a6; color: #fff; }
+      .confirm-backdrop { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; z-index: 25; }
+      .confirm-box { width: 88%; max-width: 320px; background: #fff; border-radius: 16px; padding: 18px 16px 0; }
+      .confirm-text { text-align: center; font-size: 17px; font-weight: 700; line-height: 1.5; margin-bottom: 14px; }
+      .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #e5e7eb; }
+      .confirm-btn { border: 0; background: transparent; padding: 12px 0; font-size: 20px; font-weight: 700; }
+      .confirm-btn + .confirm-btn { border-left: 1px solid #e5e7eb; color: #0f83a6; }
+
+      .req-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+      .req-name { font-size: 16px; font-weight: 800; }
+      .status { border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
+      .status.pending { background: #0f83a6; color: #fff; }
+      .status.approved { background: #22c55e; color: #fff; }
+      .status.rejected { background: #ef4444; color: #fff; }
+      .req-meta { color: #4b5563; font-size: 13px; line-height: 1.5; margin-bottom: 6px; }
+      .req-actions { display: flex; justify-content: flex-end; gap: 8px; }
+      .btn-reject,.btn-approve { border: 0; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 700; }
+      .btn-reject { background: #fee2e2; color: #b91c1c; }
+      .btn-approve { background: #dcfce7; color: #15803d; }
+
+      .profile-top { display:flex; justify-content:space-between; align-items:center; margin:0 -12px 12px; padding:0 12px 12px; border-bottom:1px solid #d6dbe3; }
+      .profile-top-title { font-size: 24px; font-weight: 800; }
+      .profile-top-logout { border: 0; background: transparent; color: #ef4444; font-size: 15px; font-weight: 700; }
+      .avatar-wrap { text-align: center; padding: 8px 0 10px; }
+      .avatar { width: 60px; height: 60px; border-radius: 999px; background: #0f83a6; color: #fff; font-size: 34px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+      .avatar-name { font-size: 32px; font-weight: 800; }
+      .avatar-email { color: #6b7280; font-size: 14px; margin-top: 2px; }
+      .info-block { margin-top: 8px; border-top: 1px solid #d6dbe3; border-bottom: 1px solid #d6dbe3; }
+      .info-row { display:flex; justify-content:space-between; border-bottom:1px solid #d6dbe3; padding:8px 0; font-size: 15px; }
+      .info-row:last-child { border-bottom: 0; }
+      .info-label { color: #6b7280; } .info-value { font-weight: 700; } .ok { color: #22c55e; }
+      .dark-box { margin-top: 10px; background: #e5e7eb; border-radius: 12px; padding: 10px; }
+      .dark-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+      .dark-sub { color: #6b7280; font-size: 13px; }
+      .app-title { font-size: 18px; font-weight: 800; margin-top: 12px; margin-bottom: 8px; }
+      .delete-note { margin-top: 10px; border: 1px solid #d6dbe3; border-radius: 10px; padding: 10px; text-align: center; color: #6b7280; font-size: 12px; }
+
+      .dash-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+      .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+      .dash-card { background: #e9ebee; border-radius: 12px; padding: 10px; }
+      .dash-label { color: #6b7280; font-size: 12px; margin-bottom: 4px; }
+      .dash-value { font-size: 22px; font-weight: 800; }
+      .dash-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+      .dash-btn { border: 0; border-radius: 10px; background: #e9ebee; padding: 10px; font-size: 14px; font-weight: 700; text-align: left; }
+      .emp-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #d6dbe3; font-size: 14px; }
+      .emp-row:last-child { border-bottom: 0; }
+      .admin-date { color:#6b7280; font-size:13px; margin-bottom:10px; }
+      .admin-band {
+        background:#eceff3;
+        border-radius:10px;
+        padding:8px 10px;
+        display:flex;
+        justify-content:space-between;
+        font-size:12px;
+        color:#6b7280;
+        margin-bottom:8px;
+      }
+      .subtab-row {
+        display:flex;
+        gap:4px;
+        border-bottom:1px solid #d6dbe3;
+        margin:0 -12px 12px;
+        padding:0 12px;
+        overflow:auto;
+      }
+      .subtab {
+        border:0;
+        background:transparent;
+        color:#6b7280;
+        font-size:13px;
+        font-weight:700;
+        padding:10px 8px;
+        white-space:nowrap;
+        border-bottom:2px solid transparent;
+      }
+      .subtab.active { color:#2563eb; border-bottom-color:#2563eb; }
+      .add-row { display:flex; gap:8px; margin-bottom:10px; }
+      .add-input {
+        flex:1;
+        border:1px solid #d2d8e1;
+        border-radius:10px;
+        background:#eceff3;
+        padding:10px 12px;
+        font-size:14px;
+      }
+      .add-btn {
+        border:0;
+        border-radius:10px;
+        background:#2563eb;
+        color:#fff;
+        font-weight:700;
+        font-size:14px;
+        padding:0 14px;
+      }
+      .empty-list {
+        text-align:center;
+        color:#9aa3af;
+        font-size:14px;
+        padding:24px 0 10px;
+      }
+      .export-card {
+        background:#e9ebee;
+        border-radius:14px;
+        padding:14px;
+        margin-bottom:12px;
+      }
+      .export-title {
+        text-align:center;
+        font-size:18px;
+        font-weight:800;
+        margin-bottom:8px;
+      }
+      .export-desc {
+        text-align:center;
+        color:#6b7280;
+        font-size:13px;
+        line-height:1.5;
+        margin-bottom:10px;
+      }
+      .export-note {
+        text-align:center;
+        color:#8b93a1;
+        font-size:11px;
+        margin-bottom:10px;
+      }
+      .export-btn-green,
+      .export-btn-orange {
+        width:100%;
+        border:0;
+        border-radius:10px;
+        color:#fff;
+        font-size:18px;
+        font-weight:800;
+        padding:10px 0;
+      }
+      .export-btn-green { background:#22c55e; }
+      .export-btn-orange { background:#f59e0b; }
+      .noauth-wrap {
+        min-height: 62vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .noauth-box { text-align: center; }
+      .noauth-icon { font-size: 52px; margin-bottom: 6px; }
+      .noauth-title { font-size: 34px; font-weight: 800; margin-bottom: 6px; }
+      .noauth-desc { color: #6b7280; font-size: 18px; margin-bottom: 14px; }
+      .noauth-btn {
+        border: 0;
+        border-radius: 10px;
+        background: #0f83a6;
+        color: #fff;
+        font-size: 18px;
+        font-weight: 700;
+        padding: 10px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div id="root" class="content"></div>
+      <div id="bottomNav" class="bottom-nav">
+        <button class="tab active" data-tab="home">🏠<div class="tab-label">홈</div></button>
+        <button class="tab" data-tab="requests">📝<div class="tab-label">요청</div></button>
+        <button class="tab" data-tab="profile">👤<div class="tab-label">프로필</div></button>
+        <button class="tab" data-tab="more">▾<div class="tab-label">더보기</div></button>
+      </div>
+    </div>
+    <script>
+      const week = ["일","월","화","수","목","금","토"];
+      const state = { user: null, email: "", password: "", showPassword: false, now: new Date(), todayLog: null, view: "home", tab: "home", recordDate: new Date(), moreTab: "staff", checkoutConfirm: { open: false, prevOutAt: null, newOutAt: null }, requestModal: { open: false, targetDate: "", type: "in", time: "", reason: "" } };
+      const WORK_SITES = ["어반어스","오류동부골든아파트","유피에스(파견)","인스페이스","더스테이힐링파크","르메르디앙 명동","비스타벨리","에어스카이","에어스카이 시설","인천환경공단","중구 지하보도","크레센도 주차","그라모스","노스텔지어","더앤리조트","설악벨리","설악비치","인스파이어(기물관리)","인스파이어(포레스트)","프레사인","메리어트 남대문","메리어트 세종","스프라지르 동대문 (시설)","스프라지르 동대문","스프라지르 명동 (시설)","아난티남해","제천인재개발원","청휘빌딩","코트야드 메리어트 평택","포포인츠 수원","헨나호텔","홀리데이인 송도","경원재","글로스터 제주","블루오션","스프라지르 명동 (객실)","아리랑힐","엔트라","오라카이 대학로","켄싱턴스타","켄싱턴평창","크레센도","홈마리나속초","광명케이스퀘어"];
+      const DISPLAY_NAMES = {
+        "admin@attendancehub.com": "최고은",
+        "emp001@attendancehub.com": "홍길동"
+      };
+      const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      const todayText = (d = new Date()) => `Today ${String(d.getMonth()+1).padStart(2,"0")}. ${String(d.getDate()).padStart(2,"0")}. (${week[d.getDay()]})`;
+      const timeText = (ms) => ms ? new Date(ms).toLocaleTimeString("ko-KR", { hour12: false }) : "-";
+      const timeHM = (ms) => {
+        if (!ms) return "-";
+        const d = new Date(ms);
+        return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      };
+      const diffMin = (a,b) => (!a || !b || b < a) ? 0 : Math.floor((b-a)/60000);
+      const durationText = (m) => `${Math.floor(m/60)}시간 ${m%60}분`;
+      const durationHM = (m) => `${Math.floor(m/60)}H${String(m%60).padStart(2,"0")}M`;
+      const fmtCoord = (v) => typeof v === "number" ? v.toFixed(6) : "-";
+      const isAdminUser = () => !!(state.user && state.user.email === "admin@attendancehub.com");
+      const storeKey = (email) => `attendance_logs_${email}`;
+      const requestStoreKey = (email) => `attendance_requests_${email}`;
+      const allLogsByUser = (email) => JSON.parse(localStorage.getItem(storeKey(email)) || "[]");
+      const allLogs = () => !state.user ? [] : allLogsByUser(state.user.email);
+      const allRequests = () => !state.user ? [] : JSON.parse(localStorage.getItem(requestStoreKey(state.user.email)) || "[]");
+      const loadTodayLog = () => allLogs().find((x)=>x.date===dateKey()) || null;
+
+      function getStaffList() {
+        return JSON.parse(localStorage.getItem("attendance_staff") || "[]");
+      }
+      function setStaffList(list) {
+        localStorage.setItem("attendance_staff", JSON.stringify(list));
+      }
+      function getUserSite(email) {
+        if (!email || email === "admin@attendancehub.com") return "본사";
+        const found = getStaffList().find((x) => x.email === email);
+        return found ? found.site : "미선택";
+      }
+      function upsertStaff(email, site) {
+        const list = getStaffList();
+        const idx = list.findIndex((x) => x.email === email);
+        if (idx >= 0) list[idx].site = site;
+        else list.push({ email, site, status: "active", createdAt: Date.now() });
+        setStaffList(list);
+      }
+      function getDisplayName(email) {
+        if (!email) return "Unknown";
+        return DISPLAY_NAMES[email] || "Unknown";
+      }
+      function getDisplayLabel(email) {
+        const name = getDisplayName(email);
+        if (!email) return name;
+        return `${name} (${email})`;
+      }
+      function eachUserEmails() {
+        const out = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("attendance_logs_")) out.push(key.replace("attendance_logs_", ""));
+        }
+        const staffEmails = getStaffList().map((x) => x.email);
+        return Array.from(new Set([...out, ...staffEmails]));
+      }
+      function todayAttendanceRows() {
+        const today = dateKey();
+        return eachUserEmails().map((email) => {
+          const log = allLogsByUser(email).find((x) => x.date === today);
+          if (!log || !log.inAt) return null;
+          return { email, inAt: log.inAt, outAt: log.outAt || null };
+        }).filter(Boolean).sort((a,b)=>a.email.localeCompare(b.email));
+      }
+      function saveToday(partial) {
+        const logs = allLogs();
+        const today = dateKey();
+        const i = logs.findIndex((x)=>x.date===today);
+        const base = i >= 0 ? logs[i] : { date: today, email: state.user.email };
+        logs[i >= 0 ? i : logs.length] = { ...base, ...partial };
+        localStorage.setItem(storeKey(state.user.email), JSON.stringify(logs));
+      }
+      function allAdminRequests() {
+        const out = [];
+        for (let i=0;i<localStorage.length;i+=1) {
+          const key = localStorage.key(i);
+          if (!key || !key.startsWith("attendance_requests_")) continue;
+          const owner = key.replace("attendance_requests_", "");
+          const list = JSON.parse(localStorage.getItem(key)||"[]");
+          list.forEach((x)=>out.push({ ...x, requesterEmail: x.requesterEmail || owner }));
+        }
+        return out.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      }
+      function createCheckoutReentryRequest(prevOutAt, newOutAt) {
+        const list = allRequests();
+        list.unshift({
+          id: Date.now(),
+          date: dateKey(),
+          type: "out_reentry",
+          time: timeHM(newOutAt),
+          reason: `퇴근시간 재입력 (기존 ${timeHM(prevOutAt)} -> ${timeHM(newOutAt)})`,
+          status: "pending",
+          createdAt: Date.now(),
+          requesterEmail: state.user.email
+        });
+        localStorage.setItem(requestStoreKey(state.user.email), JSON.stringify(list));
+      }
+      function getCurrentLocation() {
+        return new Promise((resolve) => {
+          if (!("geolocation" in navigator)) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        });
+      }
+      function doLogin(email) {
+        const safe = (email||"").trim();
+        if (!safe) return alert("이메일을 입력해주세요.");
+        if (safe !== "admin@attendancehub.com") {
+          const select = document.getElementById("siteSelect");
+          const site = select ? select.value : "";
+          if (!site) return alert("사업장을 선택해주세요.");
+          upsertStaff(safe.toLowerCase(), site);
+        }
+        state.user = { email: safe };
+        state.todayLog = loadTodayLog();
+        state.tab = isAdminUser() ? "more" : "home";
+        state.view = "home";
+        render();
+      }
+      function downloadCSV(filename, rows) {
+        const csv = rows.map((r) => r.map((v) => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function renderLogin(root) {
+        root.innerHTML = `<div class="login-page"><div class="brand"><h1>(주)winning</h1><p>GPS 기반 출근부 관리</p></div><div class="field-label">이메일</div><div class="input-wrap"><input id="email" class="login-input" placeholder="이메일을 입력하세요" value="${state.email}" /></div><div class="field-label">비밀번호</div><div class="input-wrap"><input id="password" class="login-input" type="${state.showPassword ? "text" : "password"}" placeholder="비밀번호를 입력하세요" value="${state.password}" /><button id="togglePwd" class="show-btn">${state.showPassword ? "숨김" : "보기"}</button></div><div id="siteWrap" class="hidden"><div class="field-label">사업장</div><div class="input-wrap"><select id="siteSelect" class="login-input"><option value="">사업장 선택</option>${WORK_SITES.map((s)=>`<option value="${s}">${s}</option>`).join("")}</select></div></div><button id="loginBtn" class="login-btn">로그인</button><div class="line-title">테스트 계정</div><button id="adminBtn" class="account-btn"><div class="account-title">👩‍💼 관리자 로그인</div><div class="account-sub">admin@attendancehub.com</div></button><button id="empBtn" class="account-btn"><div class="account-title">👤 직원 로그인</div><div class="account-sub">emp001@attendancehub.com</div></button></div>`;
+        root.querySelector("#email").oninput = (e) => { state.email = e.target.value; };
+        root.querySelector("#password").oninput = (e) => { state.password = e.target.value; };
+        root.querySelector("#email").onblur = () => {
+          const email = (state.email || "").trim().toLowerCase();
+          const wrap = root.querySelector("#siteWrap");
+          if (email && email !== "admin@attendancehub.com") wrap.classList.remove("hidden");
+          else wrap.classList.add("hidden");
+        };
+        root.querySelector("#togglePwd").onclick = () => { state.showPassword = !state.showPassword; render(); };
+        root.querySelector("#loginBtn").onclick = () => doLogin(state.email);
+        root.querySelector("#adminBtn").onclick = () => { state.email = "admin@attendancehub.com"; doLogin(state.email); };
+        root.querySelector("#empBtn").onclick = () => {
+          state.email = "emp001@attendancehub.com";
+          root.querySelector("#email").value = state.email;
+          root.querySelector("#siteWrap").classList.remove("hidden");
+          root.querySelector("#siteSelect").value = "어반어스";
+        };
+      }
+
+      function renderHome(root) {
+        const inAt = state.todayLog && state.todayLog.inAt;
+        const outAt = state.todayLog && state.todayLog.outAt;
+        root.innerHTML = `<div class="top"><div class="title">윈잉</div><div class="today">${todayText(state.now)}</div></div><div class="panel"><div class="chip">${outAt ? "퇴근" : "출근"}</div><div class="clock">${timeText(state.now.getTime())}</div><div class="row2"><button id="inBtn" class="action" ${inAt ? "disabled" : ""}>출근</button><button id="outBtn" class="action">퇴근</button></div></div><div class="cards"><div class="small-card"><div class="small-label">출근</div><div class="small-value">${timeText(inAt)}</div></div><div class="small-card"><div class="small-label">퇴근</div><div class="small-value">${timeText(outAt)}</div></div></div><button id="soloBtn" class="menu"><div class="menu-left"><div class="menu-icon">👤</div><div><div class="menu-title">혼자</div><div class="menu-sub">나의 출퇴근 기록</div></div></div><div>›</div></button><button id="recordBtn" class="menu"><div class="menu-left"><div class="menu-icon">📋</div><div><div class="menu-title">내 기록</div><div class="menu-sub">월별 출퇴근 기록</div></div></div><div>›</div></button>${state.checkoutConfirm.open ? `<div class="confirm-backdrop"><div class="confirm-box"><div class="confirm-text">재터치 시, 기존에 기록된<br/>퇴근 시간이 삭제됩니다.<br/>퇴근 시간을 새로<br/>기록하시겠습니까?</div><div class="confirm-actions"><button id="cancelCheckoutRe" class="confirm-btn">취소</button><button id="okCheckoutRe" class="confirm-btn">확인</button></div></div></div>` : ""}`;
+        root.querySelector("#inBtn").onclick = async () => {
+          if (inAt) return;
+          const geo = await getCurrentLocation();
+          saveToday({ inAt: Date.now(), inLat: geo ? geo.lat : null, inLng: geo ? geo.lng : null, inAcc: geo ? geo.accuracy : null });
+          state.todayLog = loadTodayLog();
+          render();
+        };
+        root.querySelector("#outBtn").onclick = async () => {
+          if (!outAt) {
+            const geo = await getCurrentLocation();
+            saveToday({ outAt: Date.now(), outLat: geo ? geo.lat : null, outLng: geo ? geo.lng : null, outAcc: geo ? geo.accuracy : null });
+            state.todayLog = loadTodayLog();
+            render();
+            return;
+          }
+          state.checkoutConfirm = { open: true, prevOutAt: outAt, newOutAt: Date.now() };
+          render();
+        };
+        root.querySelector("#soloBtn").onclick = () => { state.view = "solo"; render(); };
+        root.querySelector("#recordBtn").onclick = () => { state.view = "records"; state.recordDate = new Date(); render(); };
+        if (state.checkoutConfirm.open) {
+          root.querySelector("#cancelCheckoutRe").onclick = () => {
+            state.checkoutConfirm = { open: false, prevOutAt: null, newOutAt: null };
+            render();
+          };
+          root.querySelector("#okCheckoutRe").onclick = async () => {
+            const prev = state.checkoutConfirm.prevOutAt;
+            const next = state.checkoutConfirm.newOutAt || Date.now();
+            const geo = await getCurrentLocation();
+            saveToday({ outAt: next, outLat: geo ? geo.lat : null, outLng: geo ? geo.lng : null, outAcc: geo ? geo.accuracy : null });
+            createCheckoutReentryRequest(prev, next);
+            state.todayLog = loadTodayLog();
+            state.checkoutConfirm = { open: false, prevOutAt: null, newOutAt: null };
+            alert("퇴근시간이 재입력되었고 관리자 확인 요청이 등록되었습니다.");
+            render();
+          };
+        }
+      }
+
+      function renderRecords(root) {
+        const y = state.recordDate.getFullYear();
+        const m = state.recordDate.getMonth();
+        const prefix = `${y}-${String(m + 1).padStart(2, "0")}`;
+        const logs = allLogs().filter((x) => x.date.startsWith(prefix));
+        const totalMin = logs.reduce((s, x) => s + diffMin(x.inAt, x.outAt), 0);
+        const first = new Date(y, m, 1);
+        const last = new Date(y, m + 1, 0);
+        const lead = first.getDay();
+        const totalCells = Math.ceil((lead + last.getDate()) / 7) * 7;
+        const today = dateKey();
+        let cells = "";
+        for (let i = 0; i < totalCells; i += 1) {
+          const day = i - lead + 1;
+          if (day < 1 || day > last.getDate()) { cells += `<div class="day day-empty"></div>`; continue; }
+          const dkey = `${prefix}-${String(day).padStart(2, "0")}`;
+          const log = logs.find((x) => x.date === dkey);
+          const work = diffMin(log && log.inAt, log && log.outAt);
+          const cls = dkey === today ? "day day-focus" : (log ? "day day-work" : "day");
+          const dow = new Date(y, m, day).getDay();
+          const numCls = dow === 0 ? "day-num sun" : dow === 6 ? "day-num sat" : "day-num";
+          cells += `<div class="${cls}"><div class="${numCls}">${day}</div>${log ? `<div class="day-time">${timeHM(log.inAt)}</div><div class="day-time">${timeHM(log.outAt)}</div><div class="day-time">${durationHM(work)}</div>` : ""}</div>`;
+        }
+        root.innerHTML = `<div class="records-head"><button id="backBtn" class="back">‹</button><div>윈잉</div></div><div class="records-title">근무기록</div><div class="month-nav"><button id="prevBtn" class="month-btn">‹</button><div class="month-label">${y}.${String(m + 1).padStart(2, "0")}</div><button id="nextBtn" class="month-btn">›</button></div><div class="sum-card">총 ${durationText(totalMin)}</div><div class="dow"><div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div></div><div class="calendar">${cells}</div><div class="notice">근무기록이 인정되려면 관리자에게 최대한 원스크페이스에서 사용해야 합니다.</div>`;
+        root.querySelector("#backBtn").onclick = () => { state.view = "home"; render(); };
+        root.querySelector("#prevBtn").onclick = () => { state.recordDate = new Date(y, m - 1, 1); render(); };
+        root.querySelector("#nextBtn").onclick = () => { state.recordDate = new Date(y, m + 1, 1); render(); };
+      }
+
+      function renderRequestModal() {
+        if (!state.requestModal.open) return "";
+        const d = new Date(`${state.requestModal.targetDate}T00:00:00`);
+        return `<div class="modal-backdrop"><div class="modal-sheet"><div class="modal-head"><span>수정 요청 제출</span><button id="closeReqModal" class="modal-close">×</button></div><div class="form-label">선택된 날짜</div><div class="select-day">${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${week[d.getDay()]}요일</div><div class="form-label">요청 유형</div><button class="type-btn ${state.requestModal.type==="in"?"active":""}" data-type="in"><span class="type-dot"></span>출근 시간 수정</button><button class="type-btn ${state.requestModal.type==="out"?"active":""}" data-type="out"><span class="type-dot"></span>퇴근 시간 수정</button><button class="type-btn ${state.requestModal.type==="all"?"active":""}" data-type="all"><span class="type-dot"></span>전일 수정</button><div class="form-label">출근 시간 (HH:mm)</div><input id="reqTime" class="req-input" placeholder="예: 09:00" value="${state.requestModal.time}" /><div class="form-label">수정 사유</div><textarea id="reqReason" class="req-textarea" placeholder="수정이 필요한 이유를 설명해 주세요">${state.requestModal.reason}</textarea><div class="modal-actions"><button id="cancelReq" class="btn-cancel">취소</button><button id="submitReq" class="btn-submit">제출</button></div></div></div>`;
+      }
+      function bindRequestModalEvents(root, recent) {
+        root.querySelectorAll(".edit-btn").forEach((b)=>b.onclick=()=>{ const i=Number(b.getAttribute("data-recent-index")); if(!Number.isNaN(i)&&recent[i]){ state.requestModal = { open:true, targetDate: recent[i].date, type:"in", time: recent[i].inAt ? timeText(recent[i].inAt).slice(0,5) : "", reason:"" }; render(); }});
+        if (!state.requestModal.open) return;
+        root.querySelector("#closeReqModal").onclick = () => { state.requestModal.open = false; render(); };
+        root.querySelector("#cancelReq").onclick = () => { state.requestModal.open = false; render(); };
+        root.querySelectorAll(".type-btn").forEach((b)=>b.onclick=()=>{ state.requestModal.type = b.getAttribute("data-type"); render(); });
+        root.querySelector("#reqTime").oninput = (e)=>{ state.requestModal.time = e.target.value; };
+        root.querySelector("#reqReason").oninput = (e)=>{ state.requestModal.reason = e.target.value; };
+        root.querySelector("#submitReq").onclick = () => {
+          if (!state.requestModal.time) return alert("시간을 입력해주세요.");
+          if (!state.requestModal.reason.trim()) return alert("수정 사유를 입력해주세요.");
+          const list = allRequests();
+          list.unshift({ id: Date.now(), date: state.requestModal.targetDate, type: state.requestModal.type, time: state.requestModal.time, reason: state.requestModal.reason.trim(), status: "pending", createdAt: Date.now(), requesterEmail: state.user.email });
+          localStorage.setItem(requestStoreKey(state.user.email), JSON.stringify(list));
+          state.requestModal.open = false;
+          alert("수정 요청이 제출되었습니다.");
+          render();
+        };
+      }
+
+      function renderSolo(root) {
+        const logs = allLogs().sort((a,b)=>a.date>b.date?-1:1);
+        const todayLog = logs.find((x)=>x.date===dateKey());
+        const recent = logs.slice(0,10);
+        root.innerHTML = `<div class="records-head"><button id="backBtn" class="back">‹</button><div>혼자</div></div><div class="sub-head">오늘의 기록</div><div class="today-card"><div class="today-row"><div><div class="today-k">출근</div><div class="today-v">${timeText(todayLog&&todayLog.inAt)}</div></div><div><div class="today-k">퇴근</div><div class="today-v">${timeText(todayLog&&todayLog.outAt)}</div></div></div><div class="divider"></div><div class="today-k">근무시간</div><div class="today-v">${durationText(diffMin(todayLog&&todayLog.inAt,todayLog&&todayLog.outAt))}</div></div><div class="sub-head">최근 기록</div>${recent.map((x,i)=>`<div class="recent-item block"><div class="recent-date">${x.date} (${week[new Date(`${x.date}T00:00:00`).getDay()]})</div><div class="recent-line"><span>${timeText(x.inAt)} ~ ${timeText(x.outAt)}</span><span class="recent-dur">${durationHM(diffMin(x.inAt,x.outAt))}</span></div><div class="recent-actions"><button class="edit-btn" data-recent-index="${i}">수정요청</button></div></div>`).join("")}${renderRequestModal()}`;
+        root.querySelector("#backBtn").onclick = ()=>{ state.view="home"; state.requestModal.open=false; render(); };
+        bindRequestModalEvents(root, recent);
+      }
+
+      function renderRequests(root) {
+        if (isAdminUser()) {
+          const pending = allAdminRequests().filter((x)=>(x.status||"pending")==="pending");
+          root.innerHTML = `<div class="records-head"><div>관리자 대시보드</div></div><div class="sub-head">대기 중인 수정 요청 (${pending.length}건)</div>${pending.length===0?`<div class="request-card">대기 중인 요청이 없습니다.</div>`:pending.map((x)=>`<div class="request-card"><div class="req-head"><div class="req-name">${getDisplayLabel(x.requesterEmail)}</div><span class="status pending">접수</span></div><div class="req-meta">날짜: ${x.date}<br/>요청유형: ${x.type==="in"?"출근 시간 수정":x.type==="out"?"퇴근 시간 수정":x.type==="out_reentry"?"퇴근시간 재입력":"전일 수정"}<br/>요청시간: ${x.time}<br/>사유: ${x.reason||"-"}</div><div class="req-actions"><button class="btn-reject" data-act="rejected" data-owner="${x.requesterEmail}" data-id="${x.id}">반려</button><button class="btn-approve" data-act="approved" data-owner="${x.requesterEmail}" data-id="${x.id}">승인</button></div></div>`).join("")}`;
+          root.querySelectorAll("[data-act]").forEach((b)=>b.onclick=()=>{ const owner=b.getAttribute("data-owner"); const id=Number(b.getAttribute("data-id")); const act=b.getAttribute("data-act"); const key=requestStoreKey(owner); const arr=JSON.parse(localStorage.getItem(key)||"[]"); const idx=arr.findIndex((x)=>Number(x.id)===id); if(idx>=0){arr[idx].status=act; localStorage.setItem(key,JSON.stringify(arr));} render(); });
+          return;
+        }
+        const reqs = allRequests();
+        root.innerHTML = `<div class="records-head"><div>요청</div></div>${reqs.length===0?`<div class="request-card">아직 제출한 요청이 없습니다.</div>`:reqs.map((x)=>`<div class="request-card"><div class="req-head"><div class="req-name">${x.date}</div><span class="status ${x.status||"pending"}">${x.status==="approved"?"승인":x.status==="rejected"?"반려":"대기"}</span></div><div class="req-meta">요청유형: ${x.type==="in"?"출근 시간 수정":x.type==="out"?"퇴근 시간 수정":x.type==="out_reentry"?"퇴근시간 재입력":"전일 수정"}<br/>요청시간: ${x.time}<br/>사유: ${x.reason||"-"}</div></div>`).join("")}`;
+      }
+
+      function renderProfile(root) {
+        const role = isAdminUser() ? "관리자" : "직원";
+        const site = isAdminUser() ? "본사" : getUserSite(state.user.email);
+        const initial = (state.user.email || "U").charAt(0).toUpperCase();
+        root.innerHTML = `<div class="profile-top"><div class="profile-top-title">프로필</div><button id="logoutTop" class="profile-top-logout">로그아웃</button></div><div class="avatar-wrap"><div class="avatar">${initial}</div><div class="avatar-name">${getDisplayName(state.user.email)}</div><div class="avatar-email">${state.user.email}</div></div><div class="info-block"><div class="info-row"><span class="info-label">역할</span><span class="info-value">${role}</span></div><div class="info-row"><span class="info-label">사업장</span><span class="info-value">${site}</span></div><div class="info-row"><span class="info-label">상태</span><span class="info-value ok">활성</span></div></div><div class="dark-box"><div class="dark-title">🌙 다크 모드</div><div class="dark-sub">시스템 설정에 따라 자동 전환됩니다</div></div><div class="app-title">앱 정보</div><div class="info-block"><div class="info-row"><span class="info-label">앱 버전</span><span class="info-value">1.0.0</span></div><div class="info-row"><span class="info-label">데이터 동기화</span><span class="info-value ok">정상</span></div></div><div class="delete-note">계정을 삭제하려면 관리자에게 문의해 주세요</div>`;
+        root.querySelector("#logoutTop").onclick = () => { state.user=null; state.view="home"; state.tab="home"; state.requestModal.open=false; render(); };
+      }
+
+      function renderMore(root) {
+        if (!isAdminUser()) {
+          root.innerHTML = `
+            <div class="noauth-wrap">
+              <div class="noauth-box">
+                <div class="noauth-icon">🔒</div>
+                <div class="noauth-title">접근 권한 없음</div>
+                <div class="noauth-desc">관리자만 접근할 수 있습니다.</div>
+                <button id="backHomeBtn" class="noauth-btn">홈으로 돌아가기</button>
+              </div>
+            </div>
+          `;
+          root.querySelector("#backHomeBtn").onclick = () => {
+            state.tab = "home";
+            state.view = "home";
+            render();
+          };
+          return;
+        }
+        const rows = todayAttendanceRows();
+        const total = eachUserEmails().length;
+        const checkedIn = rows.length;
+        const notIn = Math.max(0, total - checkedIn);
+        const today = new Date();
+        const staff = getStaffList();
+        root.innerHTML = `
+          <div class="dash-title">관리자 대시보드</div>
+          <div class="admin-date">${today.getFullYear()}년 ${String(today.getMonth() + 1).padStart(2, "0")}월 ${String(today.getDate()).padStart(2, "0")}일</div>
+          <div class="admin-band"><span>전체 보기</span><span></span></div>
+          <div class="subtab-row">
+            <button class="subtab ${state.moreTab === "status" ? "active" : ""}" id="menuStatus">대시보드</button>
+            <button class="subtab ${state.moreTab === "logs" ? "active" : ""}" id="menuLogs">출근기록</button>
+            <button class="subtab ${state.moreTab === "late" ? "active" : ""}" id="menuLate">지각.조퇴</button>
+            <button class="subtab ${state.moreTab === "staff" ? "active" : ""}" id="menuStaff">직원관리</button>
+            <button class="subtab ${state.moreTab === "requests" ? "active" : ""}" id="menuRequests">수정요청</button>
+            <button class="subtab ${state.moreTab === "export" ? "active" : ""}" id="menuExport">내보내기</button>
+          </div>
+          <div id="dashBody">
+            <div class="sub-head">직원 추가</div>
+            <div class="add-row">
+              <input id="staffEmail" class="add-input" placeholder="이메일 입력" />
+              <button id="addStaffBtn" class="add-btn">추가</button>
+            </div>
+            <div class="sub-head">직원 목록 (${staff.length}명)</div>
+            <div class="block" id="staffList">${staff.length === 0 ? `<div class="empty-list">등록된 직원이 없습니다</div>` : staff.map((s) => `<div class="emp-row"><span>${getDisplayLabel(s.email)}</span><span>${s.site || "어반어스"}</span></div>`).join("")}</div>
+          </div>
+        `;
+        root.querySelector("#addStaffBtn").onclick = () => {
+          const email = (root.querySelector("#staffEmail").value || "").trim().toLowerCase();
+          if (!email) return alert("이메일을 입력해주세요.");
+          const list = getStaffList();
+          if (list.some((x) => x.email === email)) return alert("이미 등록된 직원입니다.");
+          list.push({ email, site: "어반어스", status: "active", createdAt: Date.now() });
+          setStaffList(list);
+          render();
+        };
+        root.querySelector("#menuStaff").onclick = () => { state.moreTab = "staff"; render(); };
+        const body = root.querySelector("#dashBody");
+        root.querySelector("#menuStatus").onclick = () => { state.moreTab = "status"; render(); };
+        root.querySelector("#menuLogs").onclick = () => {
+          state.moreTab = "logs";
+          const today = dateKey();
+          const lines = eachUserEmails().map((email) => {
+            const log = allLogsByUser(email).find((x) => x.date === today);
+            return `<div class="emp-row"><span>${getDisplayLabel(email)}</span><span>${log ? `${timeText(log.inAt)} ~ ${timeText(log.outAt)}` : "-"}</span></div>`;
+          });
+          body.innerHTML = `<div class="sub-head">오늘 출근기록</div><div class="block">${lines.join("")}</div>`;
+          render();
+        };
+        root.querySelector("#menuLate").onclick = () => { state.moreTab = "late"; render(); };
+        root.querySelector("#menuRequests").onclick = () => {
+          state.moreTab = "requests";
+          const reqs = allAdminRequests();
+          body.innerHTML = reqs.length === 0 ? `<div class="block">수정 요청이 없습니다.</div>` : reqs.map((x) => `<div class="request-card"><div class="req-head"><div class="req-name">${getDisplayLabel(x.requesterEmail)}</div><span class="status ${x.status || "pending"}">${x.status==="approved"?"승인":x.status==="rejected"?"반려":"대기"}</span></div><div class="req-meta">날짜: ${x.date}<br/>요청유형: ${x.type==="in"?"출근 시간 수정":x.type==="out"?"퇴근 시간 수정":x.type==="out_reentry"?"퇴근시간 재입력":"전일 수정"}<br/>요청시간: ${x.time}<br/>사유: ${x.reason || "-"}</div></div>`).join("");
+          render();
+        };
+        root.querySelector("#menuExport").onclick = () => {
+          state.moreTab = "export";
+          const today = dateKey();
+          body.innerHTML = `
+            <div class="export-card">
+              <div class="export-title">출퇴근 기록 내보내기</div>
+              <div class="export-desc">전체 보기의 ${today} 출퇴근 기록을 CSV 파일로 다운로드합니다.</div>
+              <div class="export-note">포함: 이메일, 날짜, 출근시간, 퇴근시간, 근무시간, 상태</div>
+              <button id="downloadAttendance" class="export-btn-green">출퇴근 기록 CSV 다운로드</button>
+            </div>
+            <div class="export-card">
+              <div class="export-title">지각·조퇴 기록 내보내기</div>
+              <div class="export-desc">전체 보기의 오늘 지각·조퇴 기록을 CSV 파일로 다운로드합니다.</div>
+              <div class="export-note">포함: 이메일, 날짜, 출근시간, 퇴근시간, 지각분, 조퇴분</div>
+              <button id="downloadLateEarly" class="export-btn-orange">지각·조퇴 CSV 다운로드</button>
+            </div>
+          `;
+
+          root.querySelector("#downloadAttendance").onclick = () => {
+            const csvRows = [["이메일","날짜","출근","퇴근","근무시간(분)","상태"]];
+            eachUserEmails().forEach((email) => {
+              const log = allLogsByUser(email).find((x) => x.date === today);
+              if (!log) return;
+              const worked = diffMin(log.inAt, log.outAt);
+              const status = !log.inAt ? "미출근" : log.outAt ? "퇴근완료" : "근무중";
+              csvRows.push([email, today, timeText(log.inAt), timeText(log.outAt), worked, status]);
+            });
+            downloadCSV(`attendance_${today}.csv`, csvRows);
+            alert("출퇴근 CSV 파일을 내보냈습니다.");
+          };
+
+          root.querySelector("#downloadLateEarly").onclick = () => {
+            const csvRows = [["이메일","날짜","출근","퇴근","지각분","조퇴분"]];
+            const startStd = 9 * 60;
+            const endStd = 18 * 60;
+            eachUserEmails().forEach((email) => {
+              const log = allLogsByUser(email).find((x) => x.date === today);
+              if (!log || !log.inAt) return;
+              const inDate = new Date(log.inAt);
+              const outDate = log.outAt ? new Date(log.outAt) : null;
+              const inMin = inDate.getHours() * 60 + inDate.getMinutes();
+              const outMin = outDate ? outDate.getHours() * 60 + outDate.getMinutes() : endStd;
+              const late = Math.max(0, inMin - startStd);
+              const early = Math.max(0, endStd - outMin);
+              if (late === 0 && early === 0) return;
+              csvRows.push([email, today, timeText(log.inAt), timeText(log.outAt), late, early]);
+            });
+            downloadCSV(`late_early_${today}.csv`, csvRows);
+            alert("지각·조퇴 CSV 파일을 내보냈습니다.");
+          };
+          render();
+        };
+
+        if (state.moreTab === "status") {
+          body.innerHTML = `<div class="dash-grid"><div class="dash-card"><div class="dash-label">오늘 출근 현황</div><div class="dash-value">${checkedIn}/${total}</div></div><div class="dash-card"><div class="dash-label">미출근</div><div class="dash-value">${notIn}명</div></div></div><div class="block">${rows.length===0?"오늘 출근한 직원이 없습니다.":rows.map((r)=>{ const lg=allLogsByUser(r.email).find((x)=>x.date===dateKey()); return `<div class="emp-row"><span>${getDisplayLabel(r.email)}</span><span>${timeText(r.inAt)} ${r.outAt?`~ ${timeText(r.outAt)}`:""}<br/>위도 ${fmtCoord(lg&&lg.inLat)} / 경도 ${fmtCoord(lg&&lg.inLng)}</span></div>`; }).join("")}</div>`;
+        } else if (state.moreTab === "logs") {
+          const today = dateKey();
+          const lines = eachUserEmails().map((email) => {
+            const log = allLogsByUser(email).find((x) => x.date === today);
+            if (!log) return `<div class="emp-row"><span>${getDisplayLabel(email)}</span><span>-</span></div>`;
+            return `<div class="emp-row"><span>${getDisplayLabel(email)}</span><span>${timeText(log.inAt)} ~ ${timeText(log.outAt)}<br/>출근: ${fmtCoord(log.inLat)}, ${fmtCoord(log.inLng)}<br/>퇴근: ${fmtCoord(log.outLat)}, ${fmtCoord(log.outLng)}</span></div>`;
+          });
+          body.innerHTML = `<div class="sub-head">오늘 출근기록</div><div class="block">${lines.join("")}</div>`;
+        } else if (state.moreTab === "late") {
+          body.innerHTML = `<div class="block">지각/조퇴 기록이 없습니다.</div>`;
+        } else if (state.moreTab === "requests") {
+          const reqs = allAdminRequests();
+          body.innerHTML = reqs.length === 0 ? `<div class="block">수정 요청이 없습니다.</div>` : reqs.map((x) => `<div class="request-card"><div class="req-head"><div class="req-name">${getDisplayLabel(x.requesterEmail)}</div><span class="status ${x.status || "pending"}">${x.status==="approved"?"승인":x.status==="rejected"?"반려":"대기"}</span></div><div class="req-meta">날짜: ${x.date}<br/>요청유형: ${x.type==="in"?"출근 시간 수정":x.type==="out"?"퇴근 시간 수정":x.type==="out_reentry"?"퇴근시간 재입력":"전일 수정"}<br/>요청시간: ${x.time}<br/>사유: ${x.reason || "-"}</div></div>`).join("");
+        } else if (state.moreTab === "export") {
+          body.innerHTML = `
+            <div class="export-card">
+              <div class="export-title">출퇴근 기록 내보내기</div>
+              <div class="export-desc">전체 보기의 ${dateKey()} 출퇴근 기록을 CSV 파일로 다운로드합니다.</div>
+              <div class="export-note">포함: 이메일, 날짜, 출근시간, 퇴근시간, 근무시간, 상태</div>
+              <button id="downloadAttendance" class="export-btn-green">출퇴근 기록 CSV 다운로드</button>
+            </div>
+            <div class="export-card">
+              <div class="export-title">지각·조퇴 기록 내보내기</div>
+              <div class="export-desc">전체 보기의 오늘 지각·조퇴 기록을 CSV 파일로 다운로드합니다.</div>
+              <div class="export-note">포함: 이메일, 날짜, 출근시간, 퇴근시간, 지각분, 조퇴분</div>
+              <button id="downloadLateEarly" class="export-btn-orange">지각·조퇴 CSV 다운로드</button>
+            </div>
+          `;
+          root.querySelector("#downloadAttendance").onclick = () => {
+            const today = dateKey();
+            const csvRows = [["이메일","날짜","출근","퇴근","근무시간(분)","상태"]];
+            eachUserEmails().forEach((email) => {
+              const log = allLogsByUser(email).find((x) => x.date === today);
+              if (!log) return;
+              const worked = diffMin(log.inAt, log.outAt);
+              const status = !log.inAt ? "미출근" : log.outAt ? "퇴근완료" : "근무중";
+              csvRows.push([email, today, timeText(log.inAt), timeText(log.outAt), worked, status]);
+            });
+            downloadCSV(`attendance_${today}.csv`, csvRows);
+            alert("출퇴근 CSV 파일을 내보냈습니다.");
+          };
+          root.querySelector("#downloadLateEarly").onclick = () => {
+            const today = dateKey();
+            const csvRows = [["이메일","날짜","출근","퇴근","지각분","조퇴분"]];
+            const startStd = 9 * 60;
+            const endStd = 18 * 60;
+            eachUserEmails().forEach((email) => {
+              const log = allLogsByUser(email).find((x) => x.date === today);
+              if (!log || !log.inAt) return;
+              const inDate = new Date(log.inAt);
+              const outDate = log.outAt ? new Date(log.outAt) : null;
+              const inMin = inDate.getHours() * 60 + inDate.getMinutes();
+              const outMin = outDate ? outDate.getHours() * 60 + outDate.getMinutes() : endStd;
+              const late = Math.max(0, inMin - startStd);
+              const early = Math.max(0, endStd - outMin);
+              if (late === 0 && early === 0) return;
+              csvRows.push([email, today, timeText(log.inAt), timeText(log.outAt), late, early]);
+            });
+            downloadCSV(`late_early_${today}.csv`, csvRows);
+            alert("지각·조퇴 CSV 파일을 내보냈습니다.");
+          };
+        }
+      }
+
+      function bindTabs() { document.querySelectorAll("[data-tab]").forEach((t)=>{ t.onclick=()=>{ const next=t.getAttribute("data-tab"); if(!next) return; state.tab=next; state.view="home"; state.requestModal.open=false; render(); }; }); }
+      function setActiveTab() { document.querySelectorAll("[data-tab]").forEach((t)=>t.classList.toggle("active", t.getAttribute("data-tab")===state.tab && !!state.user)); }
+      function render() {
+        const root = document.getElementById("root");
+        const nav = document.getElementById("bottomNav");
+        if (!state.user) { nav.classList.add("hidden"); renderLogin(root); return; }
+        nav.classList.remove("hidden");
+        if (state.view === "solo") renderSolo(root);
+        else if (state.view === "records") renderRecords(root);
+        else if (state.tab === "requests") renderRequests(root);
+        else if (state.tab === "profile") renderProfile(root);
+        else if (state.tab === "more") renderMore(root);
+        else renderHome(root);
+        setActiveTab();
+        bindTabs();
+      }
+      setInterval(() => {
+        state.now = new Date();
+        const c = document.querySelector(".clock");
+        const t = document.querySelector(".today");
+        if (c) c.textContent = timeText(state.now.getTime());
+        if (t) t.textContent = todayText(state.now);
+      }, 1000);
+      render();
+    </script>
+  </body>
+</html>
