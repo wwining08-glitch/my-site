@@ -68,11 +68,22 @@
         p=>r({lat:p.coords.latitude,lng:p.coords.longitude}), ()=>r(null), {enableHighAccuracy:true,timeout:8000}
       ));
     }
-    async function loadToday(){ const s=await getDoc(logRef()); state.today=s.exists()?s.data():null; }
+    async function loadToday(){
+      try {
+        const s = await getDoc(logRef());
+        state.today = s.exists() ? s.data() : null;
+      } catch {
+        state.today = state.today || null;
+      }
+    }
     async function loadMonth(){
-      const p = dayKey().slice(0,7);
-      const qs = await getDocs(query(collection(db,"attendance"), where("uid","==",uid())));
-      state.monthLogs = qs.docs.map(x=>x.data()).filter(x=>String(x.date||"").startsWith(p)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      try {
+        const p = dayKey().slice(0,7);
+        const qs = await getDocs(query(collection(db,"attendance"), where("uid","==",uid())));
+        state.monthLogs = qs.docs.map(x=>x.data()).filter(x=>String(x.date||"").startsWith(p)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      } catch {
+        state.monthLogs = [];
+      }
     }
     async function checkIn(){
       if(state.today?.inAt) return;
@@ -104,22 +115,59 @@
       $app.innerHTML = `<div class="menu"><div style="font-size:34px;font-weight:800">윈잉</div><div style="color:#0f83a6;font-weight:700">Today</div></div>
       <div class="panel"><div style="display:inline-block;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:999px">${d.outAt?"퇴근":"출근"}</div><div class="clock">${t(Date.now())}</div><div class="row"><button id="inBtn" class="btn btn-soft col" ${d.inAt?"disabled":""}>출근</button><button id="outBtn" class="btn btn-soft col">퇴근</button></div></div>
       <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big">${t(d.outAt)}</div></div></div>
-      <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button id="soloGo" class="btn">›</button></div>
-      <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">내 기록</div><div class="sub">근무기록 달력</div></div><button id="monthGo" class="btn">›</button></div>`;
+      <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button type="button" id="soloGo" class="btn">›</button></div>
+      <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">내 기록</div><div class="sub">근무기록 달력</div></div><button type="button" id="monthGo" class="btn">›</button></div>`;
       document.getElementById("inBtn").onclick=checkIn; document.getElementById("outBtn").onclick=checkOut;
       document.getElementById("soloGo").onclick=()=>{state.view="solo";render();};
       document.getElementById("monthGo").onclick=()=>{state.view="month";render();};
     }
     async function soloView(){
+      try {
       await loadMonth();
-      const d=state.today||{}; const m=mins(d.inAt,d.outAt); const list=state.monthLogs.slice(0,5);
-      $app.innerHTML = `<div class="menu"><button id="back1" class="btn">‹</button><div style="font-size:30px;font-weight:800">혼자</div></div>
-      <div style="font-size:24px;font-weight:800;margin:10px 0">월별 기록</div>
-      <div class="panel"><div class="row"><div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:38px;font-weight:800">${t(d.inAt)}</div></div><div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:38px;font-weight:800">${t(d.outAt)}</div></div></div><hr style="border-color:rgba(255,255,255,.2)"><div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:36px;font-weight:800">${hm(m)}</div></div>
-      <div class="card gray"><div style="font-size:22px;font-weight:800">이번 달 통계</div><div class="row"><div class="col"><div class="sub">근무일</div><div style="font-size:28px;font-weight:800">${state.monthLogs.length}일</div></div><div class="col" style="text-align:right"><div class="sub">총 근무시간</div><div style="font-size:28px;font-weight:800">${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div></div></div>
-      <div style="font-size:22px;font-weight:800;margin:10px 0">최근 기록</div>
-      ${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:22px">${t(x.inAt)} ~ ${t(x.outAt)}</div></div>`).join("")}`;
+      const d=state.today||{};
+      const m=mins(d.inAt,d.outAt);
+      const list=(state.monthLogs||[]).slice(0,5);
+      const weekDays = (state.monthLogs||[]).filter(x=>{
+        const dt = new Date(`${x.date}T00:00:00`);
+        const now = new Date();
+        const day = now.getDay();
+        const mon = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        mon.setHours(0,0,0,0);
+        const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+        return dt >= mon && dt <= sun;
+      });
+      const weekMin = weekDays.reduce((s,x)=>s+mins(x.inAt,x.outAt),0);
+      const monthMin = (state.monthLogs||[]).reduce((s,x)=>s+mins(x.inAt,x.outAt),0);
+      const durHM = (x)=>`${Math.floor(mins(x.inAt,x.outAt)/60)}H ${mins(x.inAt,x.outAt)%60}M`;
+      $app.innerHTML = `<div class="menu"><button type="button" id="back1" class="btn">‹</button><div style="font-size:30px;font-weight:800">혼자</div></div>
+      <div style="font-size:28px;font-weight:800;margin:10px 0">나의 출퇴근 기록</div>
+      <div class="sub-head" style="font-size:18px;font-weight:800;margin:12px 0 8px">오늘의 기록</div>
+      <div class="panel">
+        <div class="row">
+          <div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:38px;font-weight:800">${t(d.inAt)}</div></div>
+          <div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:38px;font-weight:800">${t(d.outAt)}</div></div>
+        </div>
+        <hr style="border-color:rgba(255,255,255,.2)">
+        <div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:34px;font-weight:800">${hm(m)}</div>
+      </div>
+      <div class="sub-head" style="font-size:18px;font-weight:800;margin:12px 0 8px">이번 주 통계</div>
+      <div class="card gray">
+        <div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-weight:800;font-size:30px">${weekDays.length}일</div></div>
+        <div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-weight:800;font-size:30px">${hm(weekMin)}</div></div>
+      </div>
+      <div class="sub-head" style="font-size:18px;font-weight:800;margin:12px 0 8px">이번 달 통계</div>
+      <div class="card gray">
+        <div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-weight:800;font-size:30px">${state.monthLogs.length}일</div></div>
+        <div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-weight:800;font-size:30px">${hm(monthMin)}</div></div>
+      </div>
+      <div class="sub-head" style="font-size:18px;font-weight:800;margin:12px 0 8px">최근 기록</div>
+      ${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:20px">${t(x.inAt)} ~ ${t(x.outAt)}</div><div style="text-align:right;color:#0f83a6;font-weight:800">${durHM(x)}</div></div>`).join("")}`;
       document.getElementById("back1").onclick=()=>{state.view="home";render();};
+      } catch (e) {
+        $app.innerHTML = `<div class="card"><div class="title">혼자 화면 오류</div><div class="sub">${e?.message || e}</div><button id="backFallback" class="btn btn-main" style="margin-top:10px">홈으로</button></div>`;
+        const b = document.getElementById("backFallback");
+        if (b) b.onclick = ()=>{ state.view="home"; render(); };
+      }
     }
     async function monthView(){
       await loadMonth();
@@ -157,10 +205,14 @@
       if(!state.user) return loginView();
       $tabs.style.display="grid";
       await loadToday();
-      if(state.tab==="home"){ if(state.view==="solo") return soloView(); if(state.view==="month") return monthView(); return homeView(); }
-      if(state.tab==="record") return recordTab();
-      if(state.tab==="profile") return profileTab();
-      if(state.tab==="more") return moreTab();
+      try {
+        if(state.tab==="home"){ if(state.view==="solo") return soloView(); if(state.view==="month") return monthView(); return homeView(); }
+        if(state.tab==="record") return recordTab();
+        if(state.tab==="profile") return profileTab();
+        if(state.tab==="more") return moreTab();
+      } catch (e) {
+        $app.innerHTML = `<div class="card"><div class="title">오류</div><div class="sub">${e?.message || e}</div></div>`;
+      }
     }
     document.querySelectorAll(".tab").forEach(x=>x.onclick=()=>{state.tab=x.dataset.tab; if(state.tab!=="home") state.view="home"; render();});
     onAuthStateChanged(auth, async (u)=>{state.user=u; state.tab="home"; state.view="home"; await render();});
