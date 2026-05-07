@@ -5,15 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>윈잉 출근부</title>
     <style>
-      body{margin:0;font-family:Arial,sans-serif;background:#f3f4f6}
-      .app{max-width:520px;margin:0 auto;padding:16px 12px 90px}
-      .card{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px}
-      .btn{border:0;border-radius:10px;padding:10px 12px;background:#0f83a6;color:#fff;font-weight:700}
-      .row{display:flex;gap:8px}
-      input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px}
-      .tabs{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid #ddd;display:grid;grid-template-columns:repeat(4,1fr)}
-      .tab{padding:10px;border:0;background:transparent}
-      .muted{color:#6b7280;font-size:12px}
+      body { margin: 0; background: #f2f3f5; font-family: Arial, sans-serif; color: #111827; }
+      .app { max-width: 520px; margin: 0 auto; min-height: 100vh; padding: 16px 12px 90px; }
+      .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+      .panel { background: #0f83a6; color: #fff; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
+      .clock { font-size: 44px; font-weight: 700; text-align: center; margin: 10px 0; }
+      .row { display: flex; gap: 8px; }
+      .btn { border: 0; border-radius: 10px; background: #0f83a6; color: #fff; font-weight: 700; padding: 10px 12px; }
+      .btn.gray { background: #5eaac4; }
+      .btn.red { background: #ef4444; }
+      .btn:disabled { opacity: .45; }
+      .field { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; box-sizing: border-box; margin-bottom: 8px; }
+      .muted { color: #6b7280; font-size: 12px; }
+      .tabs { position: fixed; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-top: 1px solid #d1d5db; display: grid; grid-template-columns: repeat(4, 1fr); }
+      .tab { border: 0; background: transparent; padding: 10px; color: #6b7280; font-weight: 700; }
+      .tab.active { color: #0f83a6; }
+      .title { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
     </style>
   </head>
   <body>
@@ -27,174 +34,129 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
       import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-      import {
-        getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, addDoc, updateDoc
-      } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+      import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCM8fV0FPTRAQABmUkspE4oo-Jdm7RQ7Vk",
         authDomain: "winning-c2091.firebaseapp.com",
-        projectId: "winning-c2091"
+        projectId: "winning-c2091",
+        storageBucket: "winning-c2091.firebasestorage.app",
+        messagingSenderId: "552557672048",
+        appId: "1:552557672048:web:1cdb387d28e53012c066b5",
+        measurementId: "G-F6ZB5XPX9S"
       };
-      window.addEventListener("error", (e) => {
-        const appRoot = document.getElementById("app");
-        if (appRoot) appRoot.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${e.message}</div></div>`;
-      });
-      window.addEventListener("unhandledrejection", (e) => {
-        const appRoot = document.getElementById("app");
-        const msg = e.reason && e.reason.message ? e.reason.message : String(e.reason || "알 수 없는 오류");
-        if (appRoot) appRoot.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${msg}</div></div>`;
-      });
 
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      const state = { user:null, tab:"home", today:null, reqs:[] };
+      const state = { user: null, tab: "home", today: null, reqs: [] };
       const $app = document.getElementById("app");
       const $tabs = document.getElementById("tabs");
-      const isAdmin = () => state.user && state.user.email === "admin@attendancehub.com";
-      const dayKey = () => new Date().toISOString().slice(0,10);
+      const isAdmin = () => state.user?.uid === "0wygsKaSTMe9Pr7mkbHuguRfnXt1";
+      const dayKey = () => new Date().toISOString().slice(0, 10);
       const uid = () => state.user.uid;
       const logRef = () => doc(db, "attendance", `${uid()}_${dayKey()}`);
+      const t = (ms) => (ms ? new Date(ms).toLocaleTimeString("ko-KR", { hour12: false }) : "-");
 
-      async function getGeo(){
-        return new Promise((resolve)=>{
-          if(!navigator.geolocation) return resolve(null);
+      window.addEventListener("error", (e) => { $app.innerHTML = `<div class="card"><div class="title">오류</div><div class="muted">${e.message}</div></div>`; });
+      window.addEventListener("unhandledrejection", (e) => { $app.innerHTML = `<div class="card"><div class="title">오류</div><div class="muted">${e.reason?.message || String(e.reason)}</div></div>`; });
+
+      async function getGeo() {
+        return new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve(null);
           navigator.geolocation.getCurrentPosition(
-            p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),
-            ()=>resolve(null),{enableHighAccuracy:true,timeout:8000}
+            (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 8000 }
           );
         });
       }
-      function t(ms){ return ms ? new Date(ms).toLocaleTimeString("ko-KR",{hour12:false}) : "-"; }
 
-      async function loadToday(){
-        const s = await getDoc(logRef());
-        state.today = s.exists() ? s.data() : null;
+      async function loadToday() {
+        const snap = await getDoc(logRef());
+        state.today = snap.exists() ? snap.data() : null;
       }
 
-      async function checkIn(){
-        if(state.today?.inAt) return;
+      async function checkIn() {
+        if (state.today?.inAt) return;
         const g = await getGeo();
-        await setDoc(logRef(), { uid:uid(), email:state.user.email, date:dayKey(), inAt:Date.now(), inLat:g?.lat??null, inLng:g?.lng??null, inAcc:g?.acc??null }, { merge:true });
-        await loadToday(); render();
-      }
-      async function checkOut(){
-        const g = await getGeo();
-        const has = !!state.today?.outAt;
-        if(has){
-          if(!confirm("기존 퇴근시간을 덮어쓸까요?")) return;
-          await addDoc(collection(db,"requests"),{
-            type:"out_reentry", email:state.user.email, uid:uid(), date:dayKey(), time:new Date().toLocaleTimeString("ko-KR",{hour12:false}), reason:"퇴근시간 재입력", status:"pending", createdAt:Date.now()
-          });
-        }
-        await setDoc(logRef(), { outAt:Date.now(), outLat:g?.lat??null, outLng:g?.lng??null, outAcc:g?.acc??null }, { merge:true });
+        await setDoc(logRef(), { uid: uid(), email: state.user.email, date: dayKey(), inAt: Date.now(), inLat: g?.lat ?? null, inLng: g?.lng ?? null, inAcc: g?.acc ?? null }, { merge: true });
         await loadToday(); render();
       }
 
-      async function loadRequests(){
-        if(!state.user) return;
-        if(isAdmin()){
-          const qs = await getDocs(query(collection(db,"requests"), where("status","==","pending")));
-          state.reqs = qs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt-a.createdAt);
-        }else{
-          const qs = await getDocs(query(collection(db,"requests"), where("uid","==",uid())));
-          state.reqs = qs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt-a.createdAt);
+      async function checkOut() {
+        const g = await getGeo();
+        if (state.today?.outAt) {
+          if (!confirm("기존 퇴근시간을 덮어쓸까요?")) return;
+          await addDoc(collection(db, "requests"), { uid: uid(), email: state.user.email, type: "out_reentry", date: dayKey(), time: t(Date.now()), reason: "퇴근시간 재입력", status: "pending", createdAt: Date.now() });
         }
+        await setDoc(logRef(), { outAt: Date.now(), outLat: g?.lat ?? null, outLng: g?.lng ?? null, outAcc: g?.acc ?? null }, { merge: true });
+        await loadToday(); render();
       }
 
-      function renderLogin(){
+      async function loadRequests() {
+        const qy = isAdmin() ? query(collection(db, "requests"), where("status", "==", "pending")) : query(collection(db, "requests"), where("uid", "==", uid()));
+        const qs = await getDocs(qy);
+        state.reqs = qs.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      }
+
+      function renderLogin() {
         $tabs.style.display = "none";
-        $app.innerHTML = `<div class="card"><h2>(주)winning</h2><p class="muted">GPS 기반 출근부 관리</p>
-          <input id="email" placeholder="이메일" />
-          <div style="height:8px"></div>
-          <input id="pw" type="password" placeholder="비밀번호" />
-          <div style="height:10px"></div>
-          <button id="login" class="btn" style="width:100%">로그인</button>
-        </div>`;
-        document.getElementById("login").onclick = async ()=>{
+        $app.innerHTML = `<div class="card"><div class="title">(주)winning</div><div class="muted">GPS 기반 출근부 관리</div><div style="height:12px"></div><input id="email" class="field" placeholder="이메일"><input id="pw" class="field" type="password" placeholder="비밀번호"><button id="login" class="btn" style="width:100%">로그인</button></div>`;
+        document.getElementById("login").onclick = async () => {
           const email = document.getElementById("email").value.trim();
           const pw = document.getElementById("pw").value;
           if (!email || !pw) return alert("이메일과 비밀번호를 입력해 주세요.");
-          try {
-            await signInWithEmailAndPassword(auth, email, pw);
-          } catch (e) {
-            const code = e?.code || "";
-            if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-              try {
-                await createUserWithEmailAndPassword(auth, email, pw);
-                alert("계정이 없어 새로 만들었어요. 이제 로그인됩니다.");
-              } catch (ce) {
-                const c = ce?.code || "";
-                if (c === "auth/email-already-in-use") {
-                  alert("이미 가입된 이메일입니다. 비밀번호를 확인해 주세요.");
-                } else if (c === "auth/weak-password") {
-                  alert("비밀번호가 너무 짧아요. 6자 이상으로 입력해 주세요.");
-                } else {
-                  alert("회원가입 실패: " + (ce?.message || ""));
-                }
-              }
-              return;
-            }
-            if (code === "auth/wrong-password") return alert("비밀번호가 올바르지 않습니다.");
-            if (code === "auth/invalid-email") return alert("이메일 형식이 올바르지 않습니다.");
-            if (code === "auth/too-many-requests") return alert("시도가 많습니다. 잠시 후 다시 시도해 주세요.");
-            alert("로그인 실패: " + (e?.message || ""));
+          try { await signInWithEmailAndPassword(auth, email, pw); }
+          catch {
+            try { await createUserWithEmailAndPassword(auth, email, pw); alert("계정이 없어 자동 가입했어요."); }
+            catch (e) { alert(e?.message || "로그인 실패"); }
           }
         };
       }
 
-      function renderHome(){
+      function renderHome() {
         const d = state.today || {};
-        $app.innerHTML = `<div class="card"><h3>윈잉</h3><div>${new Date().toLocaleDateString("ko-KR")}</div></div>
-          <div class="card">
-            <div>출근: ${t(d.inAt)}</div><div>퇴근: ${t(d.outAt)}</div>
-            <div class="muted">출근좌표: ${d.inLat??"-"}, ${d.inLng??"-"}</div>
-            <div class="muted">퇴근좌표: ${d.outLat??"-"}, ${d.outLng??"-"}</div>
-            <div class="row" style="margin-top:10px"><button id="in" class="btn" ${d.inAt?"disabled":""}>출근</button><button id="out" class="btn">퇴근</button></div>
-          </div>`;
+        $app.innerHTML = `<div class="title">윈잉</div><div class="panel"><div class="clock">${t(Date.now())}</div><div class="row"><button id="in" class="btn gray" style="flex:1" ${d.inAt ? "disabled" : ""}>출근</button><button id="out" class="btn gray" style="flex:1">퇴근</button></div></div><div class="card">출근: ${t(d.inAt)}<br>퇴근: ${t(d.outAt)}<div class="muted">출근좌표 ${d.inLat ?? "-"}, ${d.inLng ?? "-"}</div><div class="muted">퇴근좌표 ${d.outLat ?? "-"}, ${d.outLng ?? "-"}</div></div>`;
         document.getElementById("in").onclick = checkIn;
         document.getElementById("out").onclick = checkOut;
       }
 
-      async function renderRequests(){
+      async function renderRequests() {
         await loadRequests();
-        if(isAdmin()){
-          $app.innerHTML = `<div class="card"><h3>관리자 요청</h3>${state.reqs.map(r=>`<div class="card"><b>${r.email}</b><div>${r.type} / ${r.date} / ${r.time}</div><div>${r.reason||"-"}</div><div class="row"><button class="btn" data-ok="${r.id}">승인</button><button class="btn" style="background:#ef4444" data-no="${r.id}">반려</button></div></div>`).join("") || "대기 요청 없음"}</div>`;
-          [...document.querySelectorAll("[data-ok]")].forEach(b=>b.onclick=async()=>{ await updateDoc(doc(db,"requests",b.dataset.ok),{status:"approved"}); render(); });
-          [...document.querySelectorAll("[data-no]")].forEach(b=>b.onclick=async()=>{ await updateDoc(doc(db,"requests",b.dataset.no),{status:"rejected"}); render(); });
-        }else{
-          $app.innerHTML = `<div class="card"><h3>내 요청</h3>${state.reqs.map(r=>`<div class="card"><div>${r.date} ${r.time}</div><div>${r.type}</div><div>상태: ${r.status}</div></div>`).join("") || "요청 없음"}</div>`;
+        if (isAdmin()) {
+          $app.innerHTML = `<div class="title">관리자 요청</div>${state.reqs.map((r) => `<div class="card"><b>${r.email}</b><div>${r.type} / ${r.date} / ${r.time}</div><div>${r.reason || "-"}</div><div class="row"><button class="btn" data-ok="${r.id}">승인</button><button class="btn red" data-no="${r.id}">반려</button></div></div>`).join("") || `<div class="card">대기 요청 없음</div>`}`;
+          document.querySelectorAll("[data-ok]").forEach((b) => b.onclick = async () => { await updateDoc(doc(db, "requests", b.dataset.ok), { status: "approved" }); render(); });
+          document.querySelectorAll("[data-no]").forEach((b) => b.onclick = async () => { await updateDoc(doc(db, "requests", b.dataset.no), { status: "rejected" }); render(); });
+        } else {
+          $app.innerHTML = `<div class="title">내 요청</div>${state.reqs.map((r) => `<div class="card">${r.date} ${r.time}<br>${r.type}<br>상태: ${r.status}</div>`).join("") || `<div class="card">요청 없음</div>`}`;
         }
       }
 
-      function renderProfile(){
-        $app.innerHTML = `<div class="card"><h3>프로필</h3><div>${state.user.email}</div><div style="height:10px"></div><button id="logout" class="btn">로그아웃</button></div>`;
-        document.getElementById("logout").onclick = ()=>signOut(auth);
-      }
-      function renderMore(){
-        if(!isAdmin()){ $app.innerHTML = `<div class="card"><h3>접근 권한 없음</h3><p class="muted">관리자만 접근 가능합니다.</p></div>`; return; }
-        $app.innerHTML = `<div class="card"><h3>관리자 대시보드</h3><p class="muted">요청 탭에서 수정요청을 확인하세요.</p></div>`;
+      function renderProfile() {
+        $app.innerHTML = `<div class="title">프로필</div><div class="card">${state.user.email}<div style="height:10px"></div><button id="logout" class="btn">로그아웃</button></div>`;
+        document.getElementById("logout").onclick = () => signOut(auth);
       }
 
-      async function render(){
-        try {
-          if(!state.user){ renderLogin(); return; }
-          $tabs.style.display = "grid";
-          await loadToday();
-          if(state.tab==="home") renderHome();
-          if(state.tab==="requests") await renderRequests();
-          if(state.tab==="profile") renderProfile();
-          if(state.tab==="more") renderMore();
-        } catch (e) {
-          console.error(e);
-          $app.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${e && e.message ? e.message : String(e)}</div></div>`;
-        }
+      function renderMore() {
+        if (!isAdmin()) return $app.innerHTML = `<div class="card"><div class="title">접근 권한 없음</div><div class="muted">관리자만 접근 가능합니다.</div></div>`;
+        $app.innerHTML = `<div class="title">관리자 대시보드</div><div class="card">요청 탭에서 수정 요청을 확인하세요.</div>`;
       }
-      document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
 
-      onAuthStateChanged(auth, async (u)=>{ state.user=u; state.tab="home"; try { await render(); } catch (e) { console.error(e); } });
+      async function render() {
+        document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === state.tab));
+        if (!state.user) return renderLogin();
+        $tabs.style.display = "grid";
+        await loadToday();
+        if (state.tab === "home") renderHome();
+        if (state.tab === "requests") await renderRequests();
+        if (state.tab === "profile") renderProfile();
+        if (state.tab === "more") renderMore();
+      }
+
+      document.querySelectorAll(".tab").forEach((b) => b.onclick = () => { state.tab = b.dataset.tab; render(); });
+      onAuthStateChanged(auth, async (u) => { state.user = u; state.tab = "home"; await render(); });
     </script>
   </body>
 </html>
