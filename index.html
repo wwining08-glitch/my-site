@@ -36,6 +36,16 @@
         authDomain: "winning-c2091.firebaseapp.com",
         projectId: "winning-c2091"
       };
+      window.addEventListener("error", (e) => {
+        const appRoot = document.getElementById("app");
+        if (appRoot) appRoot.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${e.message}</div></div>`;
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        const appRoot = document.getElementById("app");
+        const msg = e.reason && e.reason.message ? e.reason.message : String(e.reason || "알 수 없는 오류");
+        if (appRoot) appRoot.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${msg}</div></div>`;
+      });
+
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
@@ -169,17 +179,22 @@
       }
 
       async function render(){
-        if(!state.user){ renderLogin(); return; }
-        $tabs.style.display = "grid";
-        await loadToday();
-        if(state.tab==="home") renderHome();
-        if(state.tab==="requests") await renderRequests();
-        if(state.tab==="profile") renderProfile();
-        if(state.tab==="more") renderMore();
+        try {
+          if(!state.user){ renderLogin(); return; }
+          $tabs.style.display = "grid";
+          await loadToday();
+          if(state.tab==="home") renderHome();
+          if(state.tab==="requests") await renderRequests();
+          if(state.tab==="profile") renderProfile();
+          if(state.tab==="more") renderMore();
+        } catch (e) {
+          console.error(e);
+          $app.innerHTML = `<div class="card"><h3>오류</h3><div class="muted">${e && e.message ? e.message : String(e)}</div></div>`;
+        }
       }
       document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
 
-      onAuthStateChanged(auth, async (u)=>{ state.user=u; state.tab="home"; await render(); });
+      onAuthStateChanged(auth, async (u)=>{ state.user=u; state.tab="home"; try { await render(); } catch (e) { console.error(e); } });
     </script>
   </body>
 </html>
