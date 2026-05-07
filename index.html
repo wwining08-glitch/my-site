@@ -34,13 +34,8 @@
       const firebaseConfig = {
         apiKey: "AIzaSyCM8fV0FPTRAQABmUkspE4oo-Jdm7RQ7Vk",
         authDomain: "winning-c2091.firebaseapp.com",
-        projectId: "winning-c2091",
-        storageBucket: "winning-c2091.firebasestorage.app",
-        messagingSenderId: "552557672048",
-        appId: "1:552557672048:web:1cdb387d28e53012c066b5",
-        measurementId: "G-F6ZB5XPX9S"
+        projectId: "winning-c2091"
       };
-
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
@@ -75,7 +70,6 @@
         await setDoc(logRef(), { uid:uid(), email:state.user.email, date:dayKey(), inAt:Date.now(), inLat:g?.lat??null, inLng:g?.lng??null, inAcc:g?.acc??null }, { merge:true });
         await loadToday(); render();
       }
-
       async function checkOut(){
         const g = await getGeo();
         const has = !!state.today?.outAt;
@@ -169,7 +163,6 @@
         $app.innerHTML = `<div class="card"><h3>프로필</h3><div>${state.user.email}</div><div style="height:10px"></div><button id="logout" class="btn">로그아웃</button></div>`;
         document.getElementById("logout").onclick = ()=>signOut(auth);
       }
-
       function renderMore(){
         if(!isAdmin()){ $app.innerHTML = `<div class="card"><h3>접근 권한 없음</h3><p class="muted">관리자만 접근 가능합니다.</p></div>`; return; }
         $app.innerHTML = `<div class="card"><h3>관리자 대시보드</h3><p class="muted">요청 탭에서 수정요청을 확인하세요.</p></div>`;
@@ -184,8 +177,8 @@
         if(state.tab==="profile") renderProfile();
         if(state.tab==="more") renderMore();
       }
-
       document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
+
       onAuthStateChanged(auth, async (u)=>{ state.user=u; state.tab="home"; await render(); });
     </script>
   </body>
