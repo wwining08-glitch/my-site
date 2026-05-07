@@ -7,10 +7,10 @@
   <style>
     body{margin:0;background:#f3f4f6;font-family:"Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;color:#111827}
     .app{max-width:520px;margin:0 auto;min-height:100vh;padding:14px 12px 88px}
-    .title{font-size:24px;font-weight:800}
-    .sub{color:#6b7280}
+    .title{font-size:26px;font-weight:800}
+    .sub{font-size:13px;color:#6b7280}
     .panel{background:#0f83a6;color:#fff;border-radius:18px;padding:16px;margin:10px 0}
-    .clock{font-size:48px;text-align:center;font-weight:800;margin:16px 0}
+    .clock{font-size:52px;text-align:center;font-weight:800;margin:16px 0}
     .row{display:flex;gap:10px}.col{flex:1}
     .btn{border:0;border-radius:12px;padding:12px 10px;font-weight:800}
     .btn-main{background:#0f83a6;color:#fff}.btn-soft{background:#59a6c4;color:#fff}
@@ -21,7 +21,7 @@
     .tab{border:0;background:transparent;padding:10px;color:#6b7280;font-weight:700}.tab.active{color:#0f83a6}
     .menu{display:flex;justify-content:space-between;align-items:center}
     .mini{font-size:12px;color:#6b7280}
-    .big{font-size:28px;font-weight:800}
+    .big{font-size:32px;font-weight:800}
     .center{text-align:center}
   </style>
 </head>
@@ -103,7 +103,7 @@
       const d=state.today||{};
       $app.innerHTML = `<div class="menu"><div style="font-size:34px;font-weight:800">윈잉</div><div style="color:#0f83a6;font-weight:700">Today</div></div>
       <div class="panel"><div style="display:inline-block;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:999px">${d.outAt?"퇴근":"출근"}</div><div class="clock">${t(Date.now())}</div><div class="row"><button id="inBtn" class="btn btn-soft col" ${d.inAt?"disabled":""}>출근</button><button id="outBtn" class="btn btn-soft col">퇴근</button></div></div>
-      <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big" style="font-size:38px">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big" style="font-size:38px">${t(d.outAt)}</div></div></div>
+      <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big">${t(d.outAt)}</div></div></div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button id="soloGo" class="btn">›</button></div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">내 기록</div><div class="sub">근무기록 달력</div></div><button id="monthGo" class="btn">›</button></div>`;
       document.getElementById("inBtn").onclick=checkIn; document.getElementById("outBtn").onclick=checkOut;
@@ -113,12 +113,12 @@
     async function soloView(){
       await loadMonth();
       const d=state.today||{}; const m=mins(d.inAt,d.outAt); const list=state.monthLogs.slice(0,5);
-      $app.innerHTML = `<div class="menu"><button id="back1" class="btn">‹</button><div style="font-size:32px;font-weight:800">혼자</div></div>
+      $app.innerHTML = `<div class="menu"><button id="back1" class="btn">‹</button><div style="font-size:30px;font-weight:800">혼자</div></div>
       <div style="font-size:24px;font-weight:800;margin:10px 0">월별 기록</div>
-      <div class="panel"><div class="row"><div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:42px;font-weight:800">${t(d.inAt)}</div></div><div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:42px;font-weight:800">${t(d.outAt)}</div></div></div><hr style="border-color:rgba(255,255,255,.2)"><div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:42px;font-weight:800">${hm(m)}</div></div>
-      <div class="card gray"><div style="font-size:28px;font-weight:800">이번 달 통계</div><div class="row"><div class="col"><div class="sub">근무일</div><div style="font-size:36px;font-weight:800">${state.monthLogs.length}일</div></div><div class="col" style="text-align:right"><div class="sub">총 근무시간</div><div style="font-size:36px;font-weight:800">${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div></div></div>
-      <div style="font-size:28px;font-weight:800;margin:10px 0">최근 기록</div>
-      ${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:30px">${t(x.inAt)} ~ ${t(x.outAt)}</div></div>`).join("")}`;
+      <div class="panel"><div class="row"><div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:38px;font-weight:800">${t(d.inAt)}</div></div><div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:38px;font-weight:800">${t(d.outAt)}</div></div></div><hr style="border-color:rgba(255,255,255,.2)"><div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:36px;font-weight:800">${hm(m)}</div></div>
+      <div class="card gray"><div style="font-size:22px;font-weight:800">이번 달 통계</div><div class="row"><div class="col"><div class="sub">근무일</div><div style="font-size:28px;font-weight:800">${state.monthLogs.length}일</div></div><div class="col" style="text-align:right"><div class="sub">총 근무시간</div><div style="font-size:28px;font-weight:800">${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div></div></div>
+      <div style="font-size:22px;font-weight:800;margin:10px 0">최근 기록</div>
+      ${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:22px">${t(x.inAt)} ~ ${t(x.outAt)}</div></div>`).join("")}`;
       document.getElementById("back1").onclick=()=>{state.view="home";render();};
     }
     async function monthView(){
@@ -138,18 +138,18 @@
         const c = wd === 0 ? "#ef4444" : wd === 6 ? "#0284c7" : "#111827";
         cells.push(`<div class="card gray" style="min-height:72px;padding:8px"><div style="font-weight:800;color:${c}">${d}</div>${log ? `<div style="font-size:11px">${t(log.inAt)}<br>${t(log.outAt)}</div>` : ""}</div>`);
       }
-      $app.innerHTML = `<div style="font-size:28px;font-weight:800;margin-bottom:8px">근무기록</div>
-      <div class="card gray menu"><button class="btn" id="backHomeMonth">‹</button><div style="font-size:28px;font-weight:800">${dayKey().slice(0,7).replace("-","년 ")}월</div><button class="btn">›</button></div>
+      $app.innerHTML = `<div style="font-size:24px;font-weight:800;margin-bottom:8px">근무기록</div>
+      <div class="card gray menu"><button class="btn" id="backHomeMonth">‹</button><div style="font-size:24px;font-weight:800">${dayKey().slice(0,7).replace("-","년 ")}월</div><button class="btn">›</button></div>
       <div class="card gray"><div class="sub">총 근무시간 ${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:12px;margin-bottom:6px"><div style="color:#ef4444">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div style="color:#0284c7">토</div></div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${cells.join("")}</div>`;
       document.getElementById("backHomeMonth").onclick = ()=>{ state.view = "home"; render(); };
     }
     function recordTab(){ monthView(); }
-    async function profileTab(){ $app.innerHTML=`<div class="card"><div style="font-size:30px;font-weight:800">프로필</div><div style="margin:8px 0">${state.user.email}</div><button id="logout" class="btn btn-main">로그아웃</button></div>`; document.getElementById("logout").onclick=()=>signOut(auth); }
+    async function profileTab(){ $app.innerHTML=`<div class="card"><div style="font-size:24px;font-weight:800">프로필</div><div style="margin:8px 0">${state.user.email}</div><button id="logout" class="btn btn-main">로그아웃</button></div>`; document.getElementById("logout").onclick=()=>signOut(auth); }
     function moreTab(){
-      if(!isAdmin()){ $app.innerHTML=`<div style="min-height:70vh;display:flex;align-items:center;justify-content:center"><div class="center"><div style="font-size:66px">🔐</div><div style="font-size:40px;font-weight:800">접근 권한 없음</div><div class="sub">관리자만 접근할 수 있습니다.</div><button class="btn btn-main" id="goHome" style="margin-top:10px">홈으로 돌아가기</button></div></div>`; document.getElementById("goHome").onclick=()=>{state.tab="home";state.view="home";render();}; return; }
-      $app.innerHTML=`<div class="card"><div style="font-size:32px;font-weight:800">관리자 대시보드</div></div>`;
+      if(!isAdmin()){ $app.innerHTML=`<div style="min-height:70vh;display:flex;align-items:center;justify-content:center"><div class="center"><div style="font-size:66px">🔐</div><div style="font-size:36px;font-weight:800">접근 권한 없음</div><div class="sub">관리자만 접근할 수 있습니다.</div><button class="btn btn-main" id="goHome" style="margin-top:10px">홈으로 돌아가기</button></div></div>`; document.getElementById("goHome").onclick=()=>{state.tab="home";state.view="home";render();}; return; }
+      $app.innerHTML=`<div class="card"><div style="font-size:28px;font-weight:800">관리자 대시보드</div></div>`;
     }
 
     async function render(){
