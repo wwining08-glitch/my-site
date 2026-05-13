@@ -84,7 +84,17 @@
       const d=state.today||{};
       $app.innerHTML = `<div class="menu"><div style="font-size:34px;font-weight:800">윈잉</div><div style="color:#0f83a6;font-weight:700">Today</div></div>
       <div class="panel"><div style="display:inline-block;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:999px">${d.outAt?"퇴근":"출근"}</div><div style="font-size:52px;text-align:center;font-weight:800;margin:16px 0">${t(Date.now())}</div><div class="row"><button id="inBtn" class="btn btn-soft col" ${d.inAt?"disabled":""}>출근</button><button id="outBtn" class="btn btn-soft col">퇴근</button></div></div>
-      <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big">${t(d.inAt)}</div><div class="sub" style="margin-top:6px">${d.inAddr||""}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big">${t(d.outAt)}</div><div class="sub" style="margin-top:6px">${d.outAddr||""}</div></div></div>
+      <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big">${t(d.outAt)}</div></div></div>
+      <div class="card gray">
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px">오늘 위치 기록</div>
+        <div class="sub">출근 위치</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.inAddr||"주소 미등록"}</div>
+        <div class="sub">${(typeof d.inLat==="number"&&typeof d.inLng==="number")?`${d.inLat.toFixed(4)}, ${d.inLng.toFixed(4)}`:""}</div>
+        <hr style="border:none;border-top:1px solid #d1d5db;margin:10px 0">
+        <div class="sub">퇴근 위치</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.outAddr||"주소 미등록"}</div>
+        <div class="sub">${(typeof d.outLat==="number"&&typeof d.outLng==="number")?`${d.outLat.toFixed(4)}, ${d.outLng.toFixed(4)}`:""}</div>
+      </div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button type="button" id="soloGo" class="btn">›</button></div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">내 기록</div><div class="sub">근무기록 달력</div></div><button type="button" id="monthGo" class="btn">›</button></div>`;
       document.getElementById("inBtn").onclick=checkIn; document.getElementById("outBtn").onclick=checkOut;
