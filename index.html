@@ -15,14 +15,14 @@
     .input{width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:10px;padding:10px;margin:6px 0}
     .title{font-size:26px;font-weight:800}.sub{font-size:13px;color:#6b7280}
     .panel{background:#0f83a6;color:#fff;border-radius:18px;padding:16px;margin:10px 0}
-    .tabs{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid #d1d5db;display:grid;grid-template-columns:repeat(4,1fr)}
+    .tabs{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid #d1d5db;display:grid;grid-template-columns:repeat(6,1fr)}
     .tab{border:0;background:transparent;padding:10px;color:#6b7280;font-weight:700}.tab.active{color:#0f83a6}
     .menu{display:flex;justify-content:space-between;align-items:center}
   </style>
 </head>
 <body>
   <div id="app" class="app"></div>
-  <div id="tabs" class="tabs" style="display:none;grid-template-columns:repeat(6,1fr)">
+  <div id="tabs" class="tabs" style="display:none">
     <button class="tab active" data-tab="home">홈</button>
     <button class="tab" data-tab="request">요청</button>
     <button class="tab" data-tab="schedule">근무일정</button>
@@ -34,12 +34,21 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
     const firebaseConfig={apiKey:"AIzaSyCM8fV0FPTRAQABmUkspE4oo-Jdm7RQ7Vk",authDomain:"winning-c2091.firebaseapp.com",projectId:"winning-c2091",storageBucket:"winning-c2091.firebasestorage.app",messagingSenderId:"552557672048",appId:"1:552557672048:web:1cdb387d28e53012c066b5"};
-    const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
     const GEOCODE_API_KEY = "AIzaSyDEVgcJMUR9HRir0Q_dhdkGFjkTSfYR8SQ";
-    const state={user:null,tab:"home",view:"home",today:null,monthLogs:[],monthCursor:new Date()},$app=document.getElementById("app"),$tabs=document.getElementById("tabs");
-    const adminUid="0wygsKaSTMe9Pr7mkbHuguRfnXt1",isAdmin=()=>state.user?.uid===adminUid,dayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,uid=()=>state.user.uid;
-    const logRef=()=>doc(db,"attendance",`${uid()}_${dayKey()}`),t=(ms)=>ms?new Date(ms).toLocaleTimeString("ko-KR",{hour12:false}):"-",mins=(a,b)=>!a||!b?0:Math.max(0,Math.floor((b-a)/60000)),hm=(m)=>`${Math.floor(m/60)}시간 ${m%60}분`;
+    const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+
+    const state={user:null,tab:"home",view:"home",today:null,monthLogs:[],monthCursor:new Date()};
+    const $app=document.getElementById("app"),$tabs=document.getElementById("tabs");
+    const adminUid="0wygsKaSTMe9Pr7mkbHuguRfnXt1",isAdmin=()=>state.user?.uid===adminUid;
+    const dayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const uid=()=>state.user.uid;
+    const logRef=()=>doc(db,"attendance",`${uid()}_${dayKey()}`);
+    const t=(ms)=>ms?new Date(ms).toLocaleTimeString("ko-KR",{hour12:false}):"-";
+    const mins=(a,b)=>!a||!b?0:Math.max(0,Math.floor((b-a)/60000));
+    const hm=(m)=>`${Math.floor(m/60)}시간 ${m%60}분`;
+
     async function geo(){return new Promise((r)=>navigator.geolocation?.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r(null),{enableHighAccuracy:true,timeout:8000}))}
     async function toAddress(lat,lng){
       if(typeof lat!=="number"||typeof lng!=="number") return "";
@@ -48,20 +57,27 @@
         const res=await fetch(url);
         const data=await res.json();
         return data?.results?.[0]?.formatted_address || "";
-      }catch{
-        return "";
-      }
+      }catch{return ""}
     }
+
     async function loadToday(){try{const s=await getDoc(logRef());state.today=s.exists()?s.data():null}catch{state.today=null}}
     async function loadMonth(){
       try{
-        const c = state.monthCursor || new Date();
-        const p = `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,"0")}`;
+        const c=state.monthCursor||new Date();
+        const p=`${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,"0")}`;
         const qs=await getDocs(query(collection(db,"attendance"),where("uid","==",uid())));
         state.monthLogs=qs.docs.map(x=>x.data()).filter(x=>String(x.date||"").startsWith(p)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
       }catch{state.monthLogs=[]}
     }
-    async function checkIn(){if(state.today?.inAt)return;const g=await geo();const inAddr=g?await toAddress(g.lat,g.lng):"";await setDoc(logRef(),{uid:uid(),email:state.user.email,date:dayKey(),inAt:Date.now(),inLat:g?.lat??null,inLng:g?.lng??null,inAddr},{merge:true});await loadToday();render()}
+
+    async function checkIn(){
+      if(state.today?.inAt)return;
+      const g=await geo();
+      const inAddr=g?await toAddress(g.lat,g.lng):"";
+      await setDoc(logRef(),{uid:uid(),email:state.user.email,date:dayKey(),inAt:Date.now(),inLat:g?.lat??null,inLng:g?.lng??null,inAddr},{merge:true});
+      await loadToday();render();
+    }
+
     async function checkOut(){
       const g=await geo();
       if(state.today?.outAt){
@@ -77,32 +93,58 @@
       }
       const outAddr=g?await toAddress(g.lat,g.lng):"";
       await setDoc(logRef(),{outAt:Date.now(),outLat:g?.lat??null,outLng:g?.lng??null,outAddr},{merge:true});
-      await loadToday();render()
+      await loadToday();render();
     }
-    function loginView(){$tabs.style.display="none";$app.innerHTML=`<div style="padding-top:120px"><div style="text-align:center"><div class="title">(주)winning</div><div class="sub">GPS 기반 출근부 관리</div></div><div style="margin-top:40px" class="sub">이메일</div><input id="em" class="input" placeholder="이메일을 입력하세요"><div class="sub" style="margin-top:8px">비밀번호</div><input id="pw" class="input" type="password" placeholder="비밀번호를 입력하세요"><button id="loginBtn" class="btn btn-main" style="width:100%;margin-top:12px">로그인</button></div>`;document.getElementById("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,document.getElementById("em").value.trim(),document.getElementById("pw").value)}catch(e){alert(e.message)}}}
+
+    function loginView(){
+      $tabs.style.display="none";
+      $app.innerHTML=`<div style="padding-top:120px"><div style="text-align:center"><div class="title">(주)winning</div><div class="sub">GPS 기반 출근부 관리</div></div><div style="margin-top:40px" class="sub">이메일</div><input id="em" class="input" placeholder="이메일을 입력하세요"><div class="sub" style="margin-top:8px">비밀번호</div><input id="pw" class="input" type="password" placeholder="비밀번호를 입력하세요"><button id="loginBtn" class="btn btn-main" style="width:100%;margin-top:12px">로그인</button></div>`;
+      document.getElementById("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,document.getElementById("em").value.trim(),document.getElementById("pw").value)}catch(e){alert(e.message)}}
+    }
+
     function homeView(){
       const d=state.today||{};
-      $app.innerHTML = `<div class="menu"><div style="font-size:34px;font-weight:800">윈잉</div><div style="color:#0f83a6;font-weight:700">Today</div></div>
+      const recent=(state.monthLogs||[]).slice(0,5);
+      $app.innerHTML=`<div class="menu"><div style="font-size:34px;font-weight:800">윈잉</div><div style="color:#0f83a6;font-weight:700">Today</div></div>
       <div class="panel"><div style="display:inline-block;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:999px">${d.outAt?"퇴근":"출근"}</div><div style="font-size:52px;text-align:center;font-weight:800;margin:16px 0">${t(Date.now())}</div><div class="row"><button id="inBtn" class="btn btn-soft col" ${d.inAt?"disabled":""}>출근</button><button id="outBtn" class="btn btn-soft col">퇴근</button></div></div>
-      <div class="row"><div class="card gray col"><div class="sub">출근</div><div class="big">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div class="big">${t(d.outAt)}</div></div></div>
-      <div class="card gray">
-        <div style="font-size:18px;font-weight:800;margin-bottom:8px">오늘 위치 기록</div>
-        <div class="sub">출근 위치</div>
-        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.inAddr||"주소 미등록"}</div>
-        <div class="sub">${(typeof d.inLat==="number"&&typeof d.inLng==="number")?`${d.inLat.toFixed(4)}, ${d.inLng.toFixed(4)}`:""}</div>
-        <hr style="border:none;border-top:1px solid #d1d5db;margin:10px 0">
-        <div class="sub">퇴근 위치</div>
-        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.outAddr||"주소 미등록"}</div>
-        <div class="sub">${(typeof d.outLat==="number"&&typeof d.outLng==="number")?`${d.outLat.toFixed(4)}, ${d.outLng.toFixed(4)}`:""}</div>
+      <div class="row"><div class="card gray col"><div class="sub">출근</div><div style="font-size:28px;font-weight:800">${t(d.inAt)}</div></div><div class="card gray col"><div class="sub">퇴근</div><div style="font-size:28px;font-weight:800">${t(d.outAt)}</div></div></div>
+      <div class="card gray"><div style="font-size:18px;font-weight:800;margin-bottom:8px">출퇴근 기록</div>
+      ${recent.length===0?`<div class="sub">기록이 없습니다.</div>`:recent.map(x=>`<div style="padding:8px 0;border-bottom:1px solid #d1d5db"><div class="sub">${x.date||"-"}</div><div style="font-size:16px;font-weight:700">${t(x.inAt)} ~ ${t(x.outAt)}</div></div>`).join("")}
       </div>
+      <div class="card gray"><div style="font-size:18px;font-weight:800;margin-bottom:8px">오늘 위치 기록</div><div class="sub">출근 위치</div><div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.inAddr||"주소 미등록"}</div><div class="sub">${(typeof d.inLat==="number"&&typeof d.inLng==="number")?`${d.inLat.toFixed(4)}, ${d.inLng.toFixed(4)}`:""}</div><hr style="border:none;border-top:1px solid #d1d5db;margin:10px 0"><div class="sub">퇴근 위치</div><div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.outAddr||"주소 미등록"}</div><div class="sub">${(typeof d.outLat==="number"&&typeof d.outLng==="number")?`${d.outLat.toFixed(4)}, ${d.outLng.toFixed(4)}`:""}</div></div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button type="button" id="soloGo" class="btn">›</button></div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">내 기록</div><div class="sub">근무기록 달력</div></div><button type="button" id="monthGo" class="btn">›</button></div>`;
-      document.getElementById("inBtn").onclick=checkIn; document.getElementById("outBtn").onclick=checkOut;
+      document.getElementById("inBtn").onclick=checkIn;
+      document.getElementById("outBtn").onclick=checkOut;
       document.getElementById("soloGo").onclick=()=>{state.view="solo";render();};
       document.getElementById("monthGo").onclick=()=>{state.monthCursor=new Date();state.view="month";render();};
     }
-    async function soloView(){await loadMonth();const d=state.today||{},m=mins(d.inAt,d.outAt),list=(state.monthLogs||[]).slice(0,5),weekDays=(state.monthLogs||[]).filter(x=>{const dt=new Date(`${x.date}T00:00:00`),now=new Date(),day=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);return dt>=mon&&dt<=sun}),weekMin=weekDays.reduce((s,x)=>s+mins(x.inAt,x.outAt),0),monthMin=(state.monthLogs||[]).reduce((s,x)=>s+mins(x.inAt,x.outAt),0),dur=(x)=>`${Math.floor(mins(x.inAt,x.outAt)/60)}시간 ${mins(x.inAt,x.outAt)%60}분`;$app.innerHTML=`<div class="menu"><button id="back1" class="btn">‹</button><div style="font-size:30px;font-weight:800">혼자</div></div><div style="font-size:28px;font-weight:800;margin:10px 0">나의 출퇴근 기록</div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">오늘의 기록</div><div class="panel"><div class="row"><div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:34px;font-weight:800">${t(d.inAt)}</div></div><div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:34px;font-weight:800">${t(d.outAt)}</div></div></div><hr style="border-color:rgba(255,255,255,.2)"><div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:30px;font-weight:800">${hm(m)}</div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">이번 주 통계</div><div class="card gray"><div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${weekDays.length}일</div></div><div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${hm(weekMin)}</div></div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">이번 달 통계</div><div class="card gray"><div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${state.monthLogs.length}일</div></div><div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${hm(monthMin)}</div></div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">최근 기록</div>${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:20px">${t(x.inAt)} ~ ${t(x.outAt)}</div><div style="text-align:right;color:#0f83a6;font-weight:800">${dur(x)}</div></div>`).join("")}`;document.getElementById("back1").onclick=()=>{state.view="home";render()}}
-    async function monthView(){await loadMonth();const now=state.monthCursor||new Date(),y=now.getFullYear(),m=now.getMonth(),first=new Date(y,m,1).getDay(),last=new Date(y,m+1,0).getDate(),map=Object.fromEntries(state.monthLogs.map(x=>[x.date,x])),cells=[];for(let i=0;i<first;i++)cells.push(`<div></div>`);for(let d=1;d<=last;d++){const date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,log=map[date],wd=new Date(y,m,d).getDay(),c=wd===0?"#ef4444":wd===6?"#0284c7":"#111827";const kind=log?.leaveType||"";const val=kind?kind:log?hm(mins(log.inAt,log.outAt)):"";cells.push(`<div class="card gray" style="min-height:72px;padding:8px"><div style="font-weight:800;color:${c}">${d}</div>${log?`<div style="font-size:11px">${val}</div>`:""}</div>`)}$app.innerHTML=`<div style="font-size:24px;font-weight:800;margin-bottom:8px">근무기록</div><div class="card gray menu"><button id="prevMonth" class="btn">‹</button><div style="font-size:24px;font-weight:800">${y}년 ${m+1}월</div><button id="nextMonth" class="btn">›</button></div><div class="card gray"><div class="sub">총 시간 ${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:12px;margin-bottom:6px"><div style="color:#ef4444">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div style="color:#0284c7">토</div></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${cells.join("")}</div><div class="row"><button id="backHomeMonth" class="btn col" style="margin-top:10px">홈으로</button></div>`;document.getElementById("backHomeMonth").onclick=()=>{state.view="home";render()};document.getElementById("prevMonth").onclick=()=>{state.monthCursor=new Date(y,m-1,1);render()};document.getElementById("nextMonth").onclick=()=>{state.monthCursor=new Date(y,m+1,1);render()}}
+
+    async function soloView(){
+      await loadMonth();
+      const d=state.today||{},m=mins(d.inAt,d.outAt),list=(state.monthLogs||[]).slice(0,5);
+      const weekDays=(state.monthLogs||[]).filter(x=>{const dt=new Date(`${x.date}T00:00:00`),now=new Date(),day=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);return dt>=mon&&dt<=sun});
+      const weekMin=weekDays.reduce((s,x)=>s+mins(x.inAt,x.outAt),0),monthMin=(state.monthLogs||[]).reduce((s,x)=>s+mins(x.inAt,x.outAt),0);
+      const dur=(x)=>`${Math.floor(mins(x.inAt,x.outAt)/60)}시간 ${mins(x.inAt,x.outAt)%60}분`;
+      $app.innerHTML=`<div class="menu"><button id="back1" class="btn">‹</button><div style="font-size:30px;font-weight:800">혼자</div></div><div style="font-size:28px;font-weight:800;margin:10px 0">나의 출퇴근 기록</div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">오늘의 기록</div><div class="panel"><div class="row"><div class="col"><div class="sub" style="color:#cfeaf3">출근</div><div style="font-size:34px;font-weight:800">${t(d.inAt)}</div></div><div class="col" style="text-align:right"><div class="sub" style="color:#cfeaf3">퇴근</div><div style="font-size:34px;font-weight:800">${t(d.outAt)}</div></div></div><hr style="border-color:rgba(255,255,255,.2)"><div class="sub" style="color:#cfeaf3">근무시간</div><div style="font-size:30px;font-weight:800">${hm(m)}</div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">이번 주 통계</div><div class="card gray"><div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${weekDays.length}일</div></div><div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${hm(weekMin)}</div></div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">이번 달 통계</div><div class="card gray"><div class="row"><div class="col"><div class="sub">근무일</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${state.monthLogs.length}일</div></div><div class="row"><div class="col"><div class="sub">총 근무시간</div></div><div class="col" style="text-align:right;font-size:30px;font-weight:800">${hm(monthMin)}</div></div></div><div class="sub" style="font-size:18px;font-weight:800;margin:12px 0 8px;color:#111827">최근 기록</div>${list.map(x=>`<div class="card gray"><div class="sub">${x.date}</div><div style="font-size:20px">${t(x.inAt)} ~ ${t(x.outAt)}</div><div style="text-align:right;color:#0f83a6;font-weight:800">${dur(x)}</div></div>`).join("")}`;
+      document.getElementById("back1").onclick=()=>{state.view="home";render()}
+    }
+
+    async function monthView(){
+      await loadMonth();
+      const now=state.monthCursor||new Date(),y=now.getFullYear(),m=now.getMonth(),first=new Date(y,m,1).getDay(),last=new Date(y,m+1,0).getDate(),map=Object.fromEntries(state.monthLogs.map(x=>[x.date,x])),cells=[];
+      for(let i=0;i<first;i++)cells.push(`<div></div>`);
+      for(let d=1;d<=last;d++){
+        const date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,log=map[date],wd=new Date(y,m,d).getDay(),c=wd===0?"#ef4444":wd===6?"#0284c7":"#111827";
+        const kind=log?.leaveType||"",val=kind?kind:log?hm(mins(log.inAt,log.outAt)):"";
+        cells.push(`<div class="card gray" style="min-height:72px;padding:8px"><div style="font-weight:800;color:${c}">${d}</div>${log?`<div style="font-size:11px">${val}</div>`:""}</div>`);
+      }
+      $app.innerHTML=`<div style="font-size:24px;font-weight:800;margin-bottom:8px">근무기록</div><div class="card gray menu"><button id="prevMonth" class="btn">‹</button><div style="font-size:24px;font-weight:800">${y}년 ${m+1}월</div><button id="nextMonth" class="btn">›</button></div><div class="card gray"><div class="sub">총 시간 ${hm(state.monthLogs.reduce((s,x)=>s+mins(x.inAt,x.outAt),0))}</div></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:12px;margin-bottom:6px"><div style="color:#ef4444">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div style="color:#0284c7">토</div></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${cells.join("")}</div><div class="row"><button id="backHomeMonth" class="btn col" style="margin-top:10px">홈으로</button></div>`;
+      document.getElementById("backHomeMonth").onclick=()=>{state.view="home";render()};
+      document.getElementById("prevMonth").onclick=()=>{state.monthCursor=new Date(y,m-1,1);render()};
+      document.getElementById("nextMonth").onclick=()=>{state.monthCursor=new Date(y,m+1,1);render()};
+    }
+
     async function requestTab(){
       const now = new Date();
       const y = now.getFullYear();
@@ -127,51 +169,32 @@
         <button id="reqHistoryBtn" class="btn" style="width:100%;margin-top:10px;background:#e5e7eb;color:#111827">요청 내역 보기</button>
       </div>`;
       let reqType = "in";
-      document.querySelectorAll(".req-type").forEach((b)=>{
-        b.onclick = ()=>{
-          reqType = b.dataset.type;
-          document.querySelectorAll(".req-type").forEach((x)=>{ x.classList.remove("btn-main"); x.style.background="#e5e7eb"; x.style.color="#111827"; });
-          b.classList.add("btn-main"); b.style.background="#0f83a6"; b.style.color="#fff";
-        };
-      });
+      document.querySelectorAll(".req-type").forEach((b)=>{b.onclick = ()=>{reqType=b.dataset.type;document.querySelectorAll(".req-type").forEach((x)=>{x.classList.remove("btn-main");x.style.background="#e5e7eb";x.style.color="#111827"});b.classList.add("btn-main");b.style.background="#0f83a6";b.style.color="#fff"}});
       const backHome = ()=>{ state.tab="home"; state.view="home"; render(); };
       document.getElementById("closeReq").onclick = backHome;
       document.getElementById("reqCancel").onclick = backHome;
       document.getElementById("reqHistoryBtn").onclick = ()=>{ state.view="request-history"; render(); };
       document.getElementById("reqSubmit").onclick = async ()=>{
-        const time = document.getElementById("reqTime").value.trim();
-        const reason = document.getElementById("reqReason").value.trim();
+        const time=document.getElementById("reqTime").value.trim(),reason=document.getElementById("reqReason").value.trim();
         if(!time) return alert("시간을 입력해 주세요.");
         if(!reason) return alert("수정 사유를 입력해 주세요.");
         try{
-          await addDoc(collection(db,"requests"),{
-            uid: uid(),
-            email: state.user.email,
-            type: reqType,
-            date: dayKey(),
-            time,
-            reason,
-            status: "pending",
-            createdAt: Date.now()
-          });
+          await addDoc(collection(db,"requests"),{uid:uid(),email:state.user.email,type:reqType,date:dayKey(),time,reason,status:"pending",createdAt:Date.now()});
           alert("요청이 제출되었습니다.");
           requestTab();
-        }catch(e){
-          alert(e.message||"요청 제출 실패");
-        }
+        }catch(e){alert(e.message||"요청 제출 실패")}
       };
     }
+
     async function requestHistoryView(){
-      let myReqs = [];
-      try {
-        const qs = await getDocs(query(collection(db,"requests"), where("uid","==",uid())));
-        myReqs = qs.docs.map((x)=>({id:x.id,...x.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-      } catch {}
+      let myReqs=[];
+      try{const qs=await getDocs(query(collection(db,"requests"), where("uid","==",uid())));myReqs=qs.docs.map((x)=>({id:x.id,...x.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))}catch{}
       $app.innerHTML = `<div class="card"><div class="menu"><div style="font-size:24px;font-weight:800">요청 내역</div><button id="backReq" class="btn">‹</button></div>
       ${myReqs.length===0?`<div class="card gray"><div class="sub">요청한 내역이 없습니다.</div></div>`:myReqs.map((r)=>`<div class="card gray"><div class="menu"><div style="font-weight:700">${r.date||"-"} ${r.time||""}</div><div style="font-size:12px;padding:4px 8px;border-radius:999px;background:${r.status==="approved"?"#dcfce7":r.status==="rejected"?"#fee2e2":"#dbeafe"};color:${r.status==="approved"?"#166534":r.status==="rejected"?"#991b1b":"#1d4ed8"}">${r.status==="approved"?"승인":r.status==="rejected"?"반려":"대기"}</div></div><div class="sub">유형: ${r.type==="in"?"출근 시간 수정":r.type==="out"?"퇴근 시간 수정":"전일 수정"}</div><div class="sub">사유: ${r.reason||"-"}</div></div>`).join("")}
       </div>`;
       document.getElementById("backReq").onclick = ()=>{ state.view="home"; state.tab="request"; render(); };
     }
+
     function scheduleTab(){
       const d = new Date();
       const dateLabel = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
@@ -180,7 +203,9 @@
       <div class="card"><div style="font-weight:800">이번 주 일정</div><div class="sub" style="margin-top:6px">월-금 주간 근무</div><div class="sub">토/일 휴무</div></div>
       <div class="card"><div style="font-weight:800">메모</div><textarea class="input" style="height:90px;resize:none" placeholder="근무 메모를 입력하세요"></textarea></div>`;
     }
+
     function attendanceTab(){monthView()}
+
     async function vacationTab(){
       if(isAdmin()){
         let list = [];
@@ -190,75 +215,31 @@
         }catch{}
         const useOf = (type)=> type==="연차" ? 1 : type==="반차" ? 0.5 : 0;
         const summary = {};
-        list.filter(v=>v.status==="approved").forEach((v)=>{
-          if(!summary[v.email]) summary[v.email] = {used:0};
-          summary[v.email].used += useOf(v.type);
-        });
-        const rows = Object.entries(summary).map(([email,val])=>{
-          const remain = Math.max(0, 15 - (val.used||0));
-          return `<div class="card gray"><div style="font-weight:700">${email}</div><div class="sub">사용: ${val.used}일 / 잔여: ${remain}일</div></div>`;
-        }).join("") || `<div class="card gray"><div class="sub">승인된 휴가가 없습니다.</div></div>`;
-
-        $app.innerHTML = `<div class="card">
-          <div style="font-size:24px;font-weight:800">휴가 관리(관리자)</div>
-          <div class="sub" style="margin-top:6px">직원별 연차 현황 (기본 15일)</div>
-          ${rows}
-          <div style="font-size:20px;font-weight:800;margin-top:10px">휴가 요청 목록</div>
-          ${list.length===0?`<div class="card gray"><div class="sub">휴가 요청이 없습니다.</div></div>`:list.map((v)=>`<div class="card gray"><div class="menu"><div style="font-weight:700">${v.email||"-"}</div><div style="font-size:12px;padding:4px 8px;border-radius:999px;background:${v.status==="approved"?"#dcfce7":v.status==="rejected"?"#fee2e2":"#dbeafe"};color:${v.status==="approved"?"#166534":v.status==="rejected"?"#991b1b":"#1d4ed8"}">${v.status==="approved"?"승인":v.status==="rejected"?"반려":"대기"}</div></div><div class="sub">${v.startDate} ~ ${v.endDate} / ${v.type}</div><div class="sub">사유: ${v.reason||"-"}</div>${v.status==="pending"?`<div class="row" style="margin-top:8px"><button class="btn btn-main col" data-v-ok="${v.id}">승인</button><button class="btn col" style="background:#fee2e2;color:#991b1b" data-v-no="${v.id}">반려</button></div>`:""}</div>`).join("")}
-        </div>`;
+        list.filter(v=>v.status==="approved").forEach((v)=>{if(!summary[v.email]) summary[v.email] = {used:0}; summary[v.email].used += useOf(v.type);});
+        const rows = Object.entries(summary).map(([email,val])=>{const remain = Math.max(0, 15 - (val.used||0));return `<div class="card gray"><div style="font-weight:700">${email}</div><div class="sub">사용: ${val.used}일 / 잔여: ${remain}일</div></div>`;}).join("") || `<div class="card gray"><div class="sub">승인된 휴가가 없습니다.</div></div>`;
+        $app.innerHTML = `<div class="card"><div style="font-size:24px;font-weight:800">휴가 관리(관리자)</div><div class="sub" style="margin-top:6px">직원별 연차 현황 (기본 15일)</div>${rows}<div style="font-size:20px;font-weight:800;margin-top:10px">휴가 요청 목록</div>${list.length===0?`<div class="card gray"><div class="sub">휴가 요청이 없습니다.</div></div>`:list.map((v)=>`<div class="card gray"><div class="menu"><div style="font-weight:700">${v.email||"-"}</div><div style="font-size:12px;padding:4px 8px;border-radius:999px;background:${v.status==="approved"?"#dcfce7":v.status==="rejected"?"#fee2e2":"#dbeafe"};color:${v.status==="approved"?"#166534":v.status==="rejected"?"#991b1b":"#1d4ed8"}">${v.status==="approved"?"승인":v.status==="rejected"?"반려":"대기"}</div></div><div class="sub">${v.startDate} ~ ${v.endDate} / ${v.type}</div><div class="sub">사유: ${v.reason||"-"}</div>${v.status==="pending"?`<div class="row" style="margin-top:8px"><button class="btn btn-main col" data-v-ok="${v.id}">승인</button><button class="btn col" style="background:#fee2e2;color:#991b1b" data-v-no="${v.id}">반려</button></div>`:""}</div>`).join("")}</div>`;
         document.querySelectorAll("[data-v-ok]").forEach((b)=>b.onclick=async()=>{await setDoc(doc(db,"vacations",b.dataset.vOk),{status:"approved"},{merge:true}); vacationTab();});
         document.querySelectorAll("[data-v-no]").forEach((b)=>b.onclick=async()=>{await setDoc(doc(db,"vacations",b.dataset.vNo),{status:"rejected"},{merge:true}); vacationTab();});
         return;
       }
       const today = new Date().toISOString().slice(0,10);
-      $app.innerHTML = `<div class="card">
-        <div class="menu"><div style="font-size:24px;font-weight:800">휴가 신청</div></div>
-        <div class="sub" style="margin-top:8px">휴가 유형</div>
-        <select id="vacType" class="input">
-          <option value="연차">연차</option>
-          <option value="반차">반차</option>
-          <option value="병가">병가</option>
-          <option value="기타">기타</option>
-        </select>
-        <div class="row">
-          <div class="col"><div class="sub">시작일</div><input id="vacStart" class="input" type="date" value="${today}" /></div>
-          <div class="col"><div class="sub">종료일</div><input id="vacEnd" class="input" type="date" value="${today}" /></div>
-        </div>
-        <div class="sub">사유</div>
-        <textarea id="vacReason" class="input" style="height:90px;resize:none" placeholder="휴가 사유를 입력해 주세요"></textarea>
-        <div class="row"><button id="vacSubmit" class="btn btn-main col">제출</button><button id="vacHistoryBtn" class="btn col" style="background:#e5e7eb;color:#111827">휴가 내역 보기</button></div>
-      </div>`;
+      $app.innerHTML = `<div class="card"><div class="menu"><div style="font-size:24px;font-weight:800">휴가 신청</div></div><div class="sub" style="margin-top:8px">휴가 유형</div><select id="vacType" class="input"><option value="연차">연차</option><option value="반차">반차</option><option value="병가">병가</option><option value="기타">기타</option></select><div class="row"><div class="col"><div class="sub">시작일</div><input id="vacStart" class="input" type="date" value="${today}" /></div><div class="col"><div class="sub">종료일</div><input id="vacEnd" class="input" type="date" value="${today}" /></div></div><div class="sub">사유</div><textarea id="vacReason" class="input" style="height:90px;resize:none" placeholder="휴가 사유를 입력해 주세요"></textarea><div class="row"><button id="vacSubmit" class="btn btn-main col">제출</button><button id="vacHistoryBtn" class="btn col" style="background:#e5e7eb;color:#111827">휴가 내역 보기</button></div></div>`;
       document.getElementById("vacSubmit").onclick = async ()=>{
-        const type = document.getElementById("vacType").value;
-        const startDate = document.getElementById("vacStart").value;
-        const endDate = document.getElementById("vacEnd").value;
-        const reason = document.getElementById("vacReason").value.trim();
+        const type = document.getElementById("vacType").value, startDate = document.getElementById("vacStart").value, endDate = document.getElementById("vacEnd").value, reason = document.getElementById("vacReason").value.trim();
         if(!startDate || !endDate) return alert("기간을 선택해 주세요.");
         if(startDate > endDate) return alert("종료일이 시작일보다 빠를 수 없습니다.");
         if(!reason) return alert("사유를 입력해 주세요.");
         try{
-          await addDoc(collection(db,"vacations"),{
-            uid: uid(),
-            email: state.user.email,
-            type,
-            startDate,
-            endDate,
-            reason,
-            status: "pending",
-            createdAt: Date.now()
-          });
+          await addDoc(collection(db,"vacations"),{uid:uid(),email:state.user.email,type,startDate,endDate,reason,status:"pending",createdAt:Date.now()});
           const spanDays = type==="반차" ? 0.5 : 1;
-          await setDoc(doc(db,"attendance",`${uid()}_${startDate}`),{
-            uid: uid(), email: state.user.email, date: startDate, leaveType: type, leaveDays: spanDays
-          },{merge:true});
+          await setDoc(doc(db,"attendance",`${uid()}_${startDate}`),{uid: uid(), email: state.user.email, date: startDate, leaveType: type, leaveDays: spanDays},{merge:true});
           alert("휴가 신청이 제출되었습니다.");
           vacationTab();
-        }catch(e){
-          alert(e.message || "휴가 신청 실패");
-        }
+        }catch(e){alert(e.message || "휴가 신청 실패")}
       };
       document.getElementById("vacHistoryBtn").onclick = ()=>{ state.view = "vacation-history"; render(); };
     }
+
     async function vacationHistoryView(){
       let list = [];
       try{
@@ -270,6 +251,7 @@
       </div>`;
       document.getElementById("backVac").onclick = ()=>{ state.view="home"; state.tab="vacation"; render(); };
     }
+
     async function profileTab(){
       const email = state.user?.email || "-";
       let name = email.split("@")[0] || "Unknown";
@@ -287,31 +269,23 @@
         }
       }catch{}
       const initial = name.charAt(0).toUpperCase();
-      $app.innerHTML = `
-      <div class="card" style="padding:0;background:transparent">
-        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d1d5db;padding:12px 4px">
-          <div style="font-size:24px;font-weight:800">프로필</div>
-          <button id="logoutTop" class="btn" style="background:transparent;color:#ef4444;padding:0">로그아웃</button>
-        </div>
-        <div style="text-align:center;padding:14px 0">
-          <div style="width:62px;height:62px;border-radius:999px;background:#0f83a6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:32px;font-weight:800">${initial}</div>
-          <div style="font-size:38px;font-weight:800;margin-top:8px">${name}</div>
-          <div class="sub" style="margin-top:3px">${email}</div>
-        </div>
-        <div class="card gray" style="padding:0">
-          <div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">역할</span><span style="font-weight:800">${role}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">사업장</span><span style="font-weight:800">${department}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:10px 12px"><span class="sub">상태</span><span style="font-weight:800;color:#16a34a">${status}</span></div>
-        </div>
-        <div style="font-size:20px;font-weight:800;margin:12px 0 6px">앱 정보</div>
-        <div class="card gray" style="padding:0">
-          <div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">앱 버전</span><span>1.0.0</span></div>
-          <div style="display:flex;justify-content:space-between;padding:10px 12px"><span class="sub">데이터 동기화</span><span style="font-weight:800;color:#16a34a">정상</span></div>
-        </div>
-      </div>`;
+      $app.innerHTML = `<div class="card" style="padding:0;background:transparent"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d1d5db;padding:12px 4px"><div style="font-size:24px;font-weight:800">프로필</div><button id="logoutTop" class="btn" style="background:transparent;color:#ef4444;padding:0">로그아웃</button></div><div style="text-align:center;padding:14px 0"><div style="width:62px;height:62px;border-radius:999px;background:#0f83a6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:32px;font-weight:800">${initial}</div><div style="font-size:38px;font-weight:800;margin-top:8px">${name}</div><div class="sub" style="margin-top:3px">${email}</div></div><div class="card gray" style="padding:0"><div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">역할</span><span style="font-weight:800">${role}</span></div><div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">사업장</span><span style="font-weight:800">${department}</span></div><div style="display:flex;justify-content:space-between;padding:10px 12px"><span class="sub">상태</span><span style="font-weight:800;color:#16a34a">${status}</span></div></div><div style="font-size:20px;font-weight:800;margin:12px 0 6px">앱 정보</div><div class="card gray" style="padding:0"><div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #d1d5db"><span class="sub">앱 버전</span><span>1.0.0</span></div><div style="display:flex;justify-content:space-between;padding:10px 12px"><span class="sub">데이터 동기화</span><span style="font-weight:800;color:#16a34a">정상</span></div></div></div>`;
       document.getElementById("logoutTop").onclick = ()=>signOut(auth);
     }
-    async function render(){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===state.tab));if(!state.user)return loginView();$tabs.style.display="grid";await loadToday();await loadMonth();if(state.tab==="home"){if(state.view==="solo")return soloView();if(state.view==="month")return monthView();return homeView()}if(state.tab==="request"){if(state.view==="request-history")return requestHistoryView();return requestTab();}if(state.tab==="schedule")return scheduleTab();if(state.tab==="attendance")return attendanceTab();if(state.tab==="vacation"){if(state.view==="vacation-history")return vacationHistoryView();return vacationTab();}if(state.tab==="profile")return await profileTab();}
+
+    async function render(){
+      document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===state.tab));
+      if(!state.user)return loginView();
+      $tabs.style.display="grid";
+      await loadToday();await loadMonth();
+      if(state.tab==="home"){if(state.view==="solo")return soloView();if(state.view==="month")return monthView();return homeView()}
+      if(state.tab==="request"){if(state.view==="request-history")return requestHistoryView();return requestTab();}
+      if(state.tab==="schedule")return scheduleTab();
+      if(state.tab==="attendance")return attendanceTab();
+      if(state.tab==="vacation"){if(state.view==="vacation-history")return vacationHistoryView();return vacationTab();}
+      if(state.tab==="profile")return await profileTab();
+    }
+
     document.querySelectorAll(".tab").forEach(x=>x.onclick=()=>{state.tab=x.dataset.tab;if(state.tab!=="home")state.view="home";render()});
     onAuthStateChanged(auth,async(u)=>{state.user=u;state.tab="home";state.view="home";await render()});
   </script>
