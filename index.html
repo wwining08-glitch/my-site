@@ -36,7 +36,7 @@
     import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     const firebaseConfig={apiKey:"AIzaSyCM8fV0FPTRAQABmUkspE4oo-Jdm7RQ7Vk",authDomain:"winning-c2091.firebaseapp.com",projectId:"winning-c2091",storageBucket:"winning-c2091.firebasestorage.app",messagingSenderId:"552557672048",appId:"1:552557672048:web:1cdb387d28e53012c066b5"};
     const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
-    const GEOCODE_API_KEY = "AIzaSyDEVgcJMUR9HRir0Q_dhdkGFjkTSfYR8SQ";
+    const GEOCODE_API_KEY = "AIzaSyCcOsAjBaeM6BlVmq9seGdB-FJF9ui97ps";
     const state={user:null,tab:"home",view:"home",today:null,monthLogs:[],monthCursor:new Date()},$app=document.getElementById("app"),$tabs=document.getElementById("tabs");
     const adminUid="0wygsKaSTMe9Pr7mkbHuguRfnXt1",isAdmin=()=>state.user?.uid===adminUid,dayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,uid=()=>state.user.uid;
     const logRef=()=>doc(db,"attendance",`${uid()}_${dayKey()}`),t=(ms)=>ms?new Date(ms).toLocaleTimeString("ko-KR",{hour12:false}):"-",mins=(a,b)=>!a||!b?0:Math.max(0,Math.floor((b-a)/60000)),hm=(m)=>`${Math.floor(m/60)}시간 ${m%60}분`;
