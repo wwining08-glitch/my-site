@@ -42,14 +42,16 @@
     const logRef=()=>doc(db,"attendance",`${uid()}_${dayKey()}`),t=(ms)=>ms?new Date(ms).toLocaleTimeString("ko-KR",{hour12:false}):"-",mins=(a,b)=>!a||!b?0:Math.max(0,Math.floor((b-a)/60000)),hm=(m)=>`${Math.floor(m/60)}시간 ${m%60}분`;
     async function geo(){return new Promise((r)=>navigator.geolocation?.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r(null),{enableHighAccuracy:true,timeout:8000}))}
     async function toAddress(lat,lng){
-      if(typeof lat!=="number"||typeof lng!=="number") return "";
+      if(typeof lat!=="number"||typeof lng!=="number") return { addr:"", reason:"좌표없음" };
       try{
         const url=`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${GEOCODE_API_KEY}`;
         const res=await fetch(url);
         const data=await res.json();
-        return data?.results?.[0]?.formatted_address || "";
+        const addr = data?.results?.[0]?.formatted_address || "";
+        if(!addr) return { addr:"", reason:"주소결과없음" };
+        return { addr, reason:"" };
       }catch{
-        return "";
+        return { addr:"", reason:"API실패" };
       }
     }
     async function loadToday(){try{const s=await getDoc(logRef());state.today=s.exists()?s.data():null}catch{state.today=null}}
@@ -61,7 +63,20 @@
         state.monthLogs=qs.docs.map(x=>x.data()).filter(x=>String(x.date||"").startsWith(p)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
       }catch{state.monthLogs=[]}
     }
-    async function checkIn(){if(state.today?.inAt)return;const g=await geo();const inAddr=g?await toAddress(g.lat,g.lng):"";await setDoc(logRef(),{uid:uid(),email:state.user.email,date:dayKey(),inAt:Date.now(),inLat:g?.lat??null,inLng:g?.lng??null,inAddr},{merge:true});await loadToday();render()}
+    async function checkIn(){
+      if(state.today?.inAt)return;
+      const g=await geo();
+      if(!g){
+        await setDoc(logRef(),{uid:uid(),email:state.user.email,date:dayKey(),inAt:Date.now(),inAddr:"",inAddrReason:"위치권한거부"},{merge:true});
+        await loadToday();render(); return;
+      }
+      const geoRes=await toAddress(g.lat,g.lng);
+      await setDoc(logRef(),{
+        uid:uid(),email:state.user.email,date:dayKey(),inAt:Date.now(),
+        inLat:g?.lat??null,inLng:g?.lng??null,inAddr:geoRes.addr,inAddrReason:geoRes.reason
+      },{merge:true});
+      await loadToday();render()
+    }
     async function checkOut(){
       const g=await geo();
       if(state.today?.outAt){
@@ -75,8 +90,15 @@
         });
         return;
       }
-      const outAddr=g?await toAddress(g.lat,g.lng):"";
-      await setDoc(logRef(),{outAt:Date.now(),outLat:g?.lat??null,outLng:g?.lng??null,outAddr},{merge:true});
+      if(!g){
+        await setDoc(logRef(),{outAt:Date.now(),outAddr:"",outAddrReason:"위치권한거부"},{merge:true});
+        await loadToday();render(); return;
+      }
+      const geoRes=await toAddress(g.lat,g.lng);
+      await setDoc(logRef(),{
+        outAt:Date.now(),outLat:g?.lat??null,outLng:g?.lng??null,
+        outAddr:geoRes.addr,outAddrReason:geoRes.reason
+      },{merge:true});
       await loadToday();render()
     }
     function loginView(){$tabs.style.display="none";$app.innerHTML=`<div style="padding-top:120px"><div style="text-align:center"><div class="title">(주)winning</div><div class="sub">GPS 기반 출근부 관리</div></div><div style="margin-top:40px" class="sub">이메일</div><input id="em" class="input" placeholder="이메일을 입력하세요"><div class="sub" style="margin-top:8px">비밀번호</div><input id="pw" class="input" type="password" placeholder="비밀번호를 입력하세요"><button id="loginBtn" class="btn btn-main" style="width:100%;margin-top:12px">로그인</button></div>`;document.getElementById("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,document.getElementById("em").value.trim(),document.getElementById("pw").value)}catch(e){alert(e.message)}}}
@@ -88,11 +110,11 @@
       <div class="card gray">
         <div style="font-size:18px;font-weight:800;margin-bottom:8px">오늘 위치 기록</div>
         <div class="sub">출근 위치</div>
-        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.inAddr||"주소 미등록"}</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.inAddr||`주소 미등록 (${d.inAddrReason||"원인불명"})`}</div>
         <div class="sub">${(typeof d.inLat==="number"&&typeof d.inLng==="number")?`${d.inLat.toFixed(4)}, ${d.inLng.toFixed(4)}`:""}</div>
         <hr style="border:none;border-top:1px solid #d1d5db;margin:10px 0">
         <div class="sub">퇴근 위치</div>
-        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.outAddr||"주소 미등록"}</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.4;margin:4px 0 8px">${d.outAddr||`주소 미등록 (${d.outAddrReason||"원인불명"})`}</div>
         <div class="sub">${(typeof d.outLat==="number"&&typeof d.outLng==="number")?`${d.outLat.toFixed(4)}, ${d.outLng.toFixed(4)}`:""}</div>
       </div>
       <div class="card gray menu"><div><div style="font-weight:800;font-size:24px">혼자</div><div class="sub">월별 기록</div></div><button type="button" id="soloGo" class="btn">›</button></div>
