@@ -47,6 +47,9 @@
         const url=`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${GEOCODE_API_KEY}`;
         const res=await fetch(url);
         const data=await res.json();
+        if(!res.ok) return { addr:"", reason:`HTTP_${res.status}` };
+        const status = data?.status || "";
+        if(status !== "OK") return { addr:"", reason: status || "GEOCODE_STATUS_EMPTY" };
         const addr = data?.results?.[0]?.formatted_address || "";
         if(!addr) return { addr:"", reason:"주소결과없음" };
         return { addr, reason:"" };
